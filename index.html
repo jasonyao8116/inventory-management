@@ -233,7 +233,10 @@
       showToast('正在上传到云端...');
       const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
       const authHeaders = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
-      const content = encodeBase64(JSON.stringify(appData, null, 2));
+      // 上传前剔除敏感信息，避免触发 GitHub secret scanning 导致 409
+      const uploadData = JSON.parse(JSON.stringify(appData));
+      delete uploadData.githubToken;
+      const content = encodeBase64(JSON.stringify(uploadData, null, 2));
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {

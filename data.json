@@ -35,12 +35,12 @@
     },
     {
       "id": "SP-20260708-001",
-      "name": "TCCA5型三氯异氰尿酸2g消毒片",
-      "brand": "万消灵",
+      "name": "TCCA三氯异氰尿酸2g消毒片",
+      "brand": "清特尔",
       "category": "消毒剂",
-      "spec": "1kg/袋×50袋/蓝桶",
+      "spec": "1kg/袋x50袋/蓝桶",
       "unit": "桶",
-      "price": 750,
+      "price": 650,
       "minStock": 10,
       "remark": ""
     }
@@ -106,11 +106,11 @@
   "favorites": [],
   "operationLogs": [
     {
-      "id": 1783490447637,
-      "time": "2026-07-08T06:00:47.637Z",
+      "id": 1783491089908,
+      "time": "2026-07-08T06:11:29.908Z",
       "type": "add",
       "content": "新增商品",
-      "detail": "TCCA5型三氯异氰尿酸2g消毒片"
+      "detail": "TCCA三氯异氰尿酸2g消毒片"
     }
   ],
   "settings": {

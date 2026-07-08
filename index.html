@@ -297,24 +297,36 @@
     async function downloadFromCloud() {
       const token = appData.githubToken;
       if (!token) { showToast('请先配置GitHub Token'); return; }
-      showToast('正在从云端下载...');
+      showToast('正在从云端获取数据...');
       try {
         const { data } = await fetchGitHubFile();
         if (!data) { showToast('⚠️ 云端暂无数据'); return; }
-        if (confirm('从云端下载将覆盖本地数据，确定继续吗？')) {
-          // 保留token和设置
-          const token = appData.githubToken;
-          appData = { ...DEFAULT_DATA, ...data, githubToken: token };
+        // 使用自定义弹窗代替 confirm()，解决移动端 PWA 无法弹出原生对话框的问题
+        showConfirmModal('从云端下载将覆盖本地数据，确定继续吗？', () => {
+          const savedToken = appData.githubToken;
+          appData = { ...DEFAULT_DATA, ...data, githubToken: savedToken };
           saveData();
           appData.settings.lastSync = new Date().toISOString();
           saveData();
           showToast('✅ 下载成功！');
           renderPage();
-        }
+        });
       } catch(e) {
         showToast('❌ 下载失败: ' + e.message);
         console.error('Download error:', e);
       }
+    }
+
+    function showConfirmModal(message, onConfirm) {
+      const modal = document.getElementById('modal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+      const modalFooter = document.getElementById('modalFooter');
+      modalTitle.textContent = '确认操作';
+      modalBody.innerHTML = '<p style="font-size:15px;color:#333;line-height:1.6">' + message + '</p>';
+      modalFooter.innerHTML = '<button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button><button class="btn btn-primary" style="flex:1" id="confirmModalOk">确定</button>';
+      document.getElementById('confirmModalOk').onclick = () => { closeModal(); onConfirm(); };
+      modal.classList.add('active');
     }
 
     function addLog(type, content, detail = '') {
@@ -2094,12 +2106,12 @@
       reader.onload = function(e) {
         try {
           const data = JSON.parse(e.target.result);
-          if (confirm('确定要导入数据吗？这将覆盖现有数据！')) {
+          showConfirmModal('确定要导入数据吗？这将覆盖现有数据！', () => {
             appData = { ...DEFAULT_DATA, ...data };
             saveData();
             showToast('导入成功');
             renderPage();
-          }
+          });
         } catch(err) {
           showToast('导入失败：文件格式错误');
         }

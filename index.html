@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a5276">
+  <title>进销存管理系统</title>
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi6aSQ5Yqh5L6G566h55CG55SoIiwic2hvcnRfbmFtZSI6IuOkkOWKoSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMWE1Mjc2IiwidGhlbWVfY29sb3IiOiIjMmU4NmMxIn0=">
+  <style>
+    :root {
+      --primary: #1a5276;
+      --primary-light: #2e86c1;
+      --primary-dark: #154360;
+      --success: #27ae60;
+      --warning: #f39c12;
+      --danger: #e74c3c;
+      --gray: #95a5a6;
+      --light-gray: #ecf0f1;
+      --text: #2c3e50;
+      --bg: #f5f6fa;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; overflow: hidden; height: 100vh; }
+    .app { height: 100vh; display: flex; flex-direction: column; }
+    .header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+    .header-btn:active { background: rgba(255,255,255,0.3); }
+    .main-content { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 70px; -webkit-overflow-scrolling: touch; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100; }
+    .tab-item { flex: 1; padding: 8px 4px; text-align: center; cursor: pointer; border: none; background: none; color: var(--gray); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .tab-item.active { color: var(--primary); }
+    .tab-item .icon { font-size: 20px; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card-title { font-size: 14px; color: var(--gray); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .card-title .more { color: var(--primary-light); cursor: pointer; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stat-item { background: white; border-radius: 12px; padding: 16px; text-align: center; }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--gray); margin-top: 4px; }
+    .stat-item.warning .stat-value { color: var(--warning); }
+    .stat-item.danger .stat-value { color: var(--danger); }
+    .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .quick-btn { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border: none; border-radius: 10px; padding: 14px 8px; text-align: center; cursor: pointer; font-size: 12px; }
+    .quick-btn:active { opacity: 0.9; }
+    .quick-btn .icon { font-size: 24px; display: block; margin-bottom: 4px; }
+    .list-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--light-gray); cursor: pointer; }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:active { background: var(--light-gray); margin: 0 -16px; padding: 12px 16px; }
+    .list-item .avatar { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 12px; flex-shrink: 0; }
+    .list-item .info { flex: 1; min-width: 0; }
+    .list-item .name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+    .list-item .desc { font-size: 12px; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-item .arrow { color: var(--gray); font-size: 12px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; color: var(--text); margin-bottom: 6px; font-weight: 500; }
+    .form-label .required { color: var(--danger); }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: white; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary-light); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-outline { background: white; border: 1px solid #ddd; color: var(--text); }
+    .btn:active { opacity: 0.9; }
+    .btn-block { width: 100%; }
+    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+    .search-box { display: flex; gap: 8px; margin-bottom: 12px; }
+    .search-box input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .search-box button { padding: 10px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+    .filter-chip { padding: 6px 14px; background: white; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+    .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 16px 16px 0 0; width: 100%; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-header { padding: 16px; border-bottom: 1px solid var(--light-gray); display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 16px; position: sticky; top: 0; background: white; }
+    .modal-close { background: none; border: none; font-size: 24px; color: var(--gray); cursor: pointer; }
+    .modal-body { padding: 16px; }
+    .modal-footer { padding: 16px; border-top: 1px solid var(--light-gray); display: flex; gap: 10px; }
+    .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 8px; z-index: 300; opacity: 0; transition: all 0.3s ease; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table th, .table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--light-gray); }
+    .table th { background: var(--light-gray); font-weight: 600; position: sticky; top: 0; }
+    .table-scroll { max-height: 400px; overflow-y: auto; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-danger { background: #f8d7da; color: #721c24; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--gray); }
+    .empty-state .icon { font-size: 60px; margin-bottom: 16px; }
+    .empty-state p { font-size: 14px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--light-gray); }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { color: var(--gray); }
+    .detail-value { font-weight: 500; }
+    .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .product-card { background: white; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; }
+    .product-card:active { border-color: var(--primary); }
+    .product-card .name { font-size: 12px; font-weight: 500; margin-top: 4px; }
+    .product-card .price { font-size: 11px; color: var(--gray); }
+    .favorite-star { color: var(--warning); }
+    .inventory-low { color: var(--danger); font-weight: 600; }
+    .print-only { display: none; }
+    @media print {
+      body { background: white; }
+      .header, .tab-bar, .no-print, .print-hide { display: none !important; }
+      .print-only { display: block; }
+      .main-content { padding: 0; }
+      .card { box-shadow: none; padding: 0; }
+      .table { font-size: 12px; }
+      .table th, .table td { padding: 6px 4px; }
+    }
+    .sub-menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+    .sub-menu-item { background: white; border-radius: 10px; padding: 14px 8px; text-align: center; cursor: pointer; }
+    .sub-menu-item:active { background: var(--light-gray); }
+    .sub-menu-item .icon { font-size: 22px; margin-bottom: 4px; }
+    .sub-menu-item .name { font-size: 12px; }
+    .report-card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .report-card h3 { font-size: 14px; margin-bottom: 12px; color: var(--primary); }
+    .log-item { padding: 12px 0; border-bottom: 1px solid var(--light-gray); }
+    .log-item:last-child { border-bottom: none; }
+    .log-time { font-size: 11px; color: var(--gray); margin-bottom: 4px; }
+    .log-content { font-size: 13px; }
+    .log-type { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 6px; }
+    .log-type.add { background: #d4edda; color: #155724; }
+    .log-type.edit { background: #cce5ff; color: #004085; }
+    .log-type.delete { background: #f8d7da; color: #721c24; }
+    .log-type.sale { background: #e2e3f3; color: #383d41; }
+    .log-type.purchase { background: #d1e7dd; color: #0f5132; }
+    .tab-sub { display: flex; background: white; border-bottom: 1px solid var(--light-gray); overflow-x: auto; }
+    .tab-sub-item { padding: 12px 16px; white-space: nowrap; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; }
+    .tab-sub-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .linkage-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .linkage-row input { flex: 1; }
+    .linkage-row .remove-btn { color: var(--danger); cursor: pointer; padding: 8px; }
+    .contact-item { background: var(--light-gray); padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+    .section-title { font-size: 13px; color: var(--gray); margin: 16px 0 8px; }
+    .sync-status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); }
+    .sync-dot.connected { background: var(--success); }
+    .chart-container { height: 200px; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1 id="pageTitle">进销存管理</h1>
+      <button class="header-btn" onclick="showToast('更多功能开发中')">⋯</button>
+    </header>
+    <main class="main-content" id="mainContent"></main>
+    <nav class="tab-bar" id="tabBar"></nav>
+  </div>
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span id="modalTitle">标题</span>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script>
+    // ============ 数据存储 ============
+    const DB_KEY = 'jxc_data';
+    const DEFAULT_DATA = {
+      products: [], customers: [], suppliers: [],
+      customerPrices: {}, purchases: [], sales: [], payments: [],
+      inventory: {}, inventoryLogs: [], favorites: [],
+      operationLogs: [], githubToken: '', settings: { lastSync: null }
+    };
+    let appData = loadData();
+
+    function loadData() {
+      try {
+        const saved = localStorage.getItem(DB_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+
+    function saveData() {
+      localStorage.setItem(DB_KEY, JSON.stringify(appData));
+    }
+
+    function addLog(type, content, detail = '') {
+      appData.operationLogs.unshift({
+        id: Date.now(), time: new Date().toISOString(), type, content, detail
+      });
+      if (appData.operationLogs.length > 500) appData.operationLogs.pop();
+      saveData();
+    }
+
+    // ============ 工具函数 ============
+    function genId(prefix) {
+      const now = new Date();
+      const date = now.toISOString().slice(0,10).replace(/-/g,'');
+      const key = prefix + '_' + date;
+      const count = appData[key] || 0;
+      appData[key] = count + 1;
+      saveData();
+      return prefix + '-' + date + '-' + String(count + 1).padStart(3,'0');
+    }
+
+    function formatMoney(n) { return '¥' + (Number(n)||0).toFixed(2); }
+    function formatDate(d) { return d ? new Date(d).toLocaleDateString('zh-CN') : ''; }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    function openModal(title, body, footer, onClose) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = body;
+      document.getElementById('modalFooter').innerHTML = footer;
+      document.getElementById('modal').classList.add('active');
+      document.getElementById('modal').onCloseCallback = onClose;
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+      if (document.getElementById('modal').onCloseCallback) {
+        document.getElementById('modal').onCloseCallback();
+      }
+    }
+
+    function confirm(msg, callback) {
+      openModal('确认', `<p style="text-align:center;padding:20px;">${msg}</p>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-danger" onclick="closeModal();(${callback})()">确认</button>`);
+    }
+
+    // ============ Tab导航 ============
+    const tabs = [
+      { id: 'home', name: '首页', icon: '🏠' },
+      { id: 'sale', name: '销售', icon: '💰' },
+      { id: 'purchase', name: '采购', icon: '📦' },
+      { id: 'inventory', name: '库存', icon: '📊' },
+      { id: 'more', name: '更多', icon: '⋯' }
+    ];
+
+    const moreItems = [
+      { id: 'products', name: '商品管理', icon: '🏷️' },
+      { id: 'customers', name: '客户管理', icon: '👥' },
+      { id: 'suppliers', name: '供应商', icon: '🏪' },
+      { id: 'payments', name: '回款', icon: '💳' },
+      { id: 'reports', name: '报表', icon: '📈' },
+      { id: 'statement', name: '对账单', icon: '📋' },
+      { id: 'settings', name: '设置', icon: '⚙️' },
+      { id: 'logs', name: '操作日志', icon: '📝' }
+    ];
+
+    function renderTabBar() {
+      const bar = document.getElementById('tabBar');
+      bar.innerHTML = tabs.map(t => 
+        `<button class="tab-item ${t.id === currentPage ? 'active' : ''}" onclick="switchPage('${t.id}')">
+          <span class="icon">${t.icon}</span><span>${t.name}</span>
+        </button>`
+      ).join('');
+    }
+
+    let currentPage = 'home';
+    function switchPage(id) {
+      currentPage = id;
+      renderTabBar();
+      renderPage();
+    }
+
+    // ============ 页面渲染 ============
+    function renderPage() {
+      const pages = {
+        home: renderHome,
+        sale: renderSaleList,
+        purchase: renderPurchaseList,
+        inventory: renderInventory,
+        more: renderMore,
+        products: renderProducts,
+        customers: renderCustomers,
+        suppliers: renderSuppliers,
+        payments: renderPayments,
+        reports: renderReports,
+        statement: renderStatement,
+        settings: renderSettings,
+        logs: renderLogs
+      };
+      const fn = pages[currentPage] || renderHome;
+      fn();
+      document.getElementById('pageTitle').textContent = getPageTitle();
+    }
+
+    function getPageTitle() {
+      const titles = {
+        home: '进销存管理', sale: '销售出库', purchase: '采购入库',
+        inventory: '库存管理', more: '更多功能', products: '商品管理',
+        customers: '客户管理', suppliers: '供应商管理', payments: '回款管理',
+        reports: '统计报表', statement: '客户对账单', settings: '系统设置', logs: '操作日志'
+      };
+      return titles[currentPage] || '进销存管理';
+    }
+
+    // ============ 首页 ============
+    function renderHome() {
+      const today = new Date().toISOString().slice(0,10);
+      const monthStart = today.slice(0,7);
+      let todaySale = 0, monthSale = 0, totalOwed = 0, lowStockCount = 0;
+
+      appData.sales.forEach(s => {
+        const saleDate = s.date.slice(0,10);
+        const amount = calcSaleTotal(s);
+        if (saleDate === today) todaySale += amount;
+        if (saleDate.slice(0,7) === monthStart) monthSale += amount;
+      });
+
+      appData.customers.forEach(c => {
+        totalOwed += (c.totalOwed || 0);
+      });
+
+      Object.keys(appData.inventory).forEach(pid => {
+        const p = appData.products.find(x => x.id === pid);
+        if (p && appData.inventory[pid] < (p.minStock || 0)) lowStockCount++;
+      });
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-item"><div class="stat-value">${formatMoney(todaySale)}</div><div class="stat-label">今日销售额</div></div>
+          <div class="stat-item"><div class="stat-value">${formatMoney(monthSale)}</div><div class="stat-label">本月销售额</div></div>
+          <div class="stat-item warning"><div class="stat-value">${lowStockCount}</div><div class="stat-label">库存预警</div></div>
+          <div class="stat-item danger"><div class="stat-value">${formatMoney(totalOwed)}</div><div class="stat-label">总欠款</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">快捷操作</div>
+          <div class="quick-actions">
+            <button class="quick-btn" onclick="switchPage('sale');setTimeout(newSale,100)">
+              <span class="icon">📝</span>新建销售单
+            </button>
+            <button class="quick-btn" onclick="switchPage('purchase');setTimeout(newPurchase,100)">
+              <span class="icon">📋</span>新建采购单
+            </button>
+            <button class="quick-btn" onclick="switchPage('inventory');setTimeout(showLowStock,100)">
+              <span class="icon">⚠️</span>库存预警
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">近期销售 <span class="more" onclick="switchPage('sale')">查看全部</span></div>
+          ${renderRecentSales()}
+        </div>
+        <div class="card">
+          <div class="card-title">低库存商品</div>
+          ${renderLowStockProducts()}
+        </div>`;
+    }
+
+    function renderRecentSales() {
+      const recent = appData.sales.slice(0,5);
+      if (!recent.length) return '<div class="empty-state"><p>暂无销售记录</p></div>';
+      return recent.map(s => {
+        const customer = appData.customers.find(c => c.id === s.customerId);
+        return `<div class="list-item" onclick="viewSale('${s.id}')">
+          <div class="avatar">💰</div>
+          <div class="info">
+            <div class="name">${customer?.name || '未知客户'}</div>
+            <div class="desc">${s.id} · ${formatDate(s.date)}</div>
+          </div>
+          <div class="stat-value" style="font-size:16px">${formatMoney(calcSaleTotal(s))}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderLowStockProducts() {
+      const low = appData.products.filter(p => appData.inventory[p.id] < (p.minStock || 0));
+      if (!low.length) return '<div class="empty-state"><p>库存充足</p></div>';
+      return low.map(p => `<div class="list-item">
+        <div class="avatar" style="background:linear-gradient(135deg,#e74c3c,#c0392b)">⚠️</div>
+        <div class="info">
+          <div class="name inventory-low">${p.name}</div>
+          <div class="desc">${p.brand || ''} · 当前库存: ${appData.inventory[p.id] || 0}</div>
+        </div>
+      </div>`).join('');
+    }
+
+    // ============ 商品管理 ============
+    let productFilter = { search: '', brand: '', category: '' };
+    let editingProduct = null;
+
+    function renderProducts() {
+      const brands = [...new Set(appData.products.map(p => p.brand).filter(Boolean))];
+      const categories = [...new Set(appData.products.map(p => p.category).filter(Boolean))];
+      const list = appData.products.filter(p => {
+        if (productFilter.search && !p.name.includes(productFilter.search) && !(p.brand||'').includes(productFilter.search)) return false;
+        if (productFilter.brand && p.brand !== productFilter.brand) return false;
+        if (productFilter.category && p.category !== productFilter.category) return false;
+        return true;
+      });
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-box">
+          <input type="text" placeholder="搜索商品..." value="${productFilter.search}" onchange="productFilter.search=this.value;renderProducts()">
+          <button onclick="renderProducts()">🔍</button>
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${!productFilter.brand?'active':''}" onclick="productFilter.brand='';renderProducts()">全部品牌</span>
+          ${brands.map(b => `<span class="filter-chip ${productFilter.brand===b?'active':''}" onclick="productFilter.brand='${b}';renderProducts()">${b}</span>`).join('')}
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${!productFilter.category?'active':''}" onclick="productFilter.category='';renderProducts()">全部分类</span>
+          ${categories.map(c => `<span class="filter-chip ${productFilter.category===c?'active':''}" onclick="productFilter.category='${c}';renderProducts()">${c}</span>`).join('')}
+        </div>
+        <div class="card">
+          ${list.length ? list.map(p => renderProductItem(p)).join('') : '<div class="empty-state"><p>暂无商品</p></div>'}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newProduct()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 新建商品</button>`;
+    }
+
+    function renderProductItem(p) {
+      const stock = appData.inventory[p.id] || 0;
+      const isLow = stock < (p.minStock || 0);
+      const isFav = appData.favorites.includes(p.id);
+      return `<div class="list-item" onclick="editProduct('${p.id}')">
+        <div class="avatar">🏷️</div>
+        <div class="info">
+          <div class="name ${isFav?'favorite-star':''}">${isFav?'★ ':''}${p.name}</div>
+          <div class="desc">${p.brand||''} ${p.category?'· '+p.category:''} · 库存: <span class="${isLow?'inventory-low':''}">${stock}</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:600">${formatMoney(p.price)}</div>
+          <div style="font-size:11px;color:var(--gray)">成本: ${formatMoney(p.cost)}</div>
+        </div>
+      </div>`;
+    }
+
+    function newProduct() {
+      editingProduct = { id: genId('SP'), name:'', brand:'', category:'', spec:'', unit:'件', cost:0, price:0, minStock:10, remark:'' };
+      showProductForm();
+    }
+
+    function editProduct(id) {
+      editingProduct = JSON.parse(JSON.stringify(appData.products.find(p => p.id === id)));
+      showProductForm();
+    }
+
+    function showProductForm() {
+      const p = editingProduct;
+      openModal(p.id === 'NEW' ? '新建商品' : '编辑商品', `
+        <div class="form-group"><label class="form-label">商品名称 <span class="required">*</span></label>
+          <input class="form-input" id="pf_name" value="${p.name}"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">品牌</label>
+            <input class="form-input" id="pf_brand" value="${p.brand||''}" list="brandList">
+            <datalist id="brandList">${[...new Set(appData.products.map(x=>x.brand).filter(Boolean))].map(b=>`<option value="${b}">`).join('')}</datalist>
+          </div>
+          <div class="form-group"><label class="form-label">分类</label>
+            <input class="form-input" id="pf_category" value="${p.category||''}" list="catList">
+            <datalist id="catList">${[...new Set(appData.products.map(x=>x.category).filter(Boolean))].map(c=>`<option value="${c}">`).join('')}</datalist>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">规格</label><input class="form-input" id="pf_spec" value="${p.spec||''}"></div>
+          <div class="form-group"><label class="form-label">单位</label><input class="form-input" id="pf_unit" value="${p.unit||'件'}"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">成本价</label><input class="form-input" type="number" step="0.01" id="pf_cost" value="${p.cost}"></div>
+          <div class="form-group"><label class="form-label">默认售价</label><input class="form-input" type="number" step="0.01" id="pf_price" value="${p.price}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">安全库存</label><input class="form-input" type="number" id="pf_minStock" value="${p.minStock||10}"></div>
+        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="pf_remark">${p.remark||''}</textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-primary" onclick="saveProduct()">保存</button>`,
+        () => editingProduct = null
+      );
+    }
+
+    function saveProduct() {
+      const p = editingProduct;
+      p.name = document.getElementById('pf_name').value.trim();
+      p.brand = document.getElementById('pf_brand').value.trim();
+      p.category = document.getElementById('pf_category').value.trim();
+      p.spec = document.getElementById('pf_spec').value.trim();
+      p.unit = document.getElementById('pf_unit').value.trim() || '件';
+      p.cost = parseFloat(document.getElementById('pf_cost').value) || 0;
+      p.price = parseFloat(document.getElementById('pf_price').value) || 0;
+      p.minStock = parseInt(document.getElementById('pf_minStock').value) || 0;
+      p.remark = document.getElementById('pf_remark').value.trim();
+      if (!p.name) { showToast('请填写商品名称'); return; }
+      const idx = appData.products.findIndex(x => x.id === p.id);
+      if (idx >= 0) {
+        appData.products[idx] = p;
+        addLog('edit', '修改商品', `${p.name}`);
+      } else {
+        appData.products.push(p);
+        appData.inventory[p.id] = 0;
+        addLog('add', '新增商品', `${p.name}`);
+      }
+      saveData();
+      closeModal();
+      renderPage();
+      showToast('保存成功');
+    }
+
+    function toggleFavorite(id) {
+      const idx = appData.favorites.indexOf(id);
+      if (idx >= 0) appData.favorites.splice(idx, 1);
+      else appData.favorites.push(id);
+      saveData();
+      renderPage();
+    }
+
+    function deleteProduct(id) {
+      confirm('确定删除该商品？', () => {
+        const p = appData.products.find(x => x.id === id);
+        appData.products = appData.products.filter(x => x.id !== id);
+        appData.favorites = appData.favorites.filter(x => x !== id);
+        saveData();
+        addLog('delete', '删除商品', `${p?.name || id}`);
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
+    // ============ 客户管理 ============
+    let editingCustomer = null;
+
+    function renderCustomers() {
+      const list = appData.customers;
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-box">
+          <input type="text" placeholder="搜索客户..." id="custSearch" oninput="document.getElementById('customerList').innerHTML=renderCustomerList(this.value)">
+          <button onclick="document.getElementById('customerList').innerHTML=renderCustomerList(document.getElementById('custSearch').value)">🔍</button>
+        </div>
+        <div class="card" id="customerList">
+          ${renderCustomerList('')}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newCustomer()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 新建客户</button>`;
+    }
+
+    function renderCustomerList(search) {
+      const list = appData.customers.filter(c => !search || c.name.includes(search) || (c.address||'').includes(search));
+      if (!list.length) return '<div class="empty-state"><p>暂无客户</p></div>';
+      return list.map(c => {
+        const owed = calcCustomerOwed(c.id);
+        return `<div class="list-item" onclick="editCustomer('${c.id}')">
+          <div class="avatar" style="background:linear-gradient(135deg,#9b59b6,#8e44ad)">👥</div>
+          <div class="info">
+            <div class="name">${c.name}</div>
+            <div class="desc">${c.settleType==='monthly'?'月结':'现结'} · ${c.address||''}</div>
+          </div>
+          ${owed > 0 ? `<span class="badge badge-danger">欠款${formatMoney(owed)}</span>` : '<span class="badge badge-success">已结清</span>'}
+        </div>`;
+      }).join('');
+    }
+
+    function calcCustomerOwed(customerId) {
+      let owed = 0;
+      appData.sales.filter(s => s.customerId === customerId).forEach(s => {
+        const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+        owed += calcSaleTotal(s) - paid;
+      });
+      return owed;
+    }
+
+    function newCustomer() {
+      editingCustomer = {
+        id: genId('KH'), name: '', address: '', settleType: 'cash', creditDays: 30,
+        remark: '', contacts: [], prices: {}
+      };
+      showCustomerForm();
+    }
+
+    function editCustomer(id) {
+      editingCustomer = JSON.parse(JSON.stringify(appData.customers.find(c => c.id === id)));
+      showCustomerForm();
+    }
+
+    function showCustomerForm() {
+      const c = editingCustomer;
+      const contactsHtml = (c.contacts || []).map((ct, i) => `
+        <div class="contact-item">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">姓名</label><input class="form-input ct_name" value="${ct.name||''}"></div>
+            <div class="form-group"><label class="form-label">职位</label><input class="form-input ct_title" value="${ct.title||''}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">电话</label><input class="form-input ct_phone" value="${ct.phone||''}"></div>
+            <div class="form-group"><label class="form-label">微信</label><input class="form-input ct_wechat" value="${ct.wechat||''}"></div>
+          </div>
+          <button class="btn btn-outline" style="margin-top:8px" onclick="removeContact(${i})">删除联系人</button>
+        </div>`).join('');
+
+      openModal(c.id.includes('NEW') ? '新建客户' : '编辑客户', `
+        <div class="form-group"><label class="form-label">客户名称 <span class="required">*</span></label>
+          <input class="form-input" id="cf_name" value="${c.name}"></div>
+        <div class="form-group"><label class="form-label">地址</label>
+          <input class="form-input" id="cf_address" value="${c.address||''}"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">结算方式</label>
+            <select class="form-select" id="cf_settleType" onchange="toggleCreditDays(this.value)">
+              <option value="cash" ${c.settleType==='cash'?'selected':''}>现结</option>
+              <option value="monthly" ${c.settleType==='monthly'?'selected':''}>月结</option>
+            </select>
+          </div>
+          <div class="form-group" id="creditDaysGroup" style="${c.settleType!=='monthly'?'display:none':''}">
+            <label class="form-label">账期(天)</label>
+            <input class="form-input" type="number" id="cf_creditDays" value="${c.creditDays||30}">
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">备注</label>
+          <textarea class="form-textarea" id="cf_remark">${c.remark||''}</textarea></div>
+        <div class="section-title">联系人</div>
+        <div id="contactsContainer">${contactsHtml}</div>
+        <button class="btn btn-outline btn-block" onclick="addContact()">+ 添加联系人</button>
+        <div class="section-title">专属价格</div>
+        <div id="pricesContainer">${renderPriceInputs()}</div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-danger" onclick="deleteCustomer()">删除</button>
+         <button class="btn btn-primary" onclick="saveCustomer()">保存</button>`,
+        () => editingCustomer = null
+      );
+    }
+
+    function toggleCreditDays(val) {
+      document.getElementById('creditDaysGroup').style.display = val === 'monthly' ? '' : 'none';
+    }
+
+    function addContact() {
+      editingCustomer.contacts = editingCustomer.contacts || [];
+      editingCustomer.contacts.push({ name: '', phone: '', wechat: '', title: '' });
+      document.getElementById('contactsContainer').innerHTML = editingCustomer.contacts.map((ct, i) => `
+        <div class="contact-item">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">姓名</label><input class="form-input ct_name" value="${ct.name||''}"></div>
+            <div class="form-group"><label class="form-label">职位</label><input class="form-input ct_title" value="${ct.title||''}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">电话</label><input class="form-input ct_phone" value="${ct.phone||''}"></div>
+            <div class="form-group"><label class="form-label">微信</label><input class="form-input ct_wechat" value="${ct.wechat||''}"></div>
+          </div>
+          <button class="btn btn-outline" style="margin-top:8px" onclick="removeContact(${i})">删除联系人</button>
+        </div>`).join('');
+    }
+
+    function removeContact(idx) {
+      editingCustomer.contacts.splice(idx, 1);
+      document.getElementById('contactsContainer').innerHTML = editingCustomer.contacts.map((ct, i) => `
+        <div class="contact-item">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">姓名</label><input class="form-input ct_name" value="${ct.name||''}"></div>
+            <div class="form-group"><label class="form-label">职位</label><input class="form-input ct_title" value="${ct.title||''}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">电话</label><input class="form-input ct_phone" value="${ct.phone||''}"></div>
+            <div class="form-group"><label class="form-label">微信</label><input class="form-input ct_wechat" value="${ct.wechat||''}"></div>
+          </div>
+          <button class="btn btn-outline" style="margin-top:8px" onclick="removeContact(${i})">删除联系人</button>
+        </div>`).join('');
+    }
+
+    function renderPriceInputs() {
+      return appData.products.map(p => `
+        <div class="form-group" style="margin-bottom:8px">
+          <label class="form-label" style="font-size:12px">${p.name} (默认: ${formatMoney(p.price)})</label>
+          <input class="form-input" style="padding:8px" type="number" step="0.01" 
+            id="price_${p.id}" value="${editingCustomer.prices?.[p.id] || ''}" placeholder="留空使用默认售价">
+        </div>`).join('');
+    }
+
+    function saveCustomer() {
+      const c = editingCustomer;
+      c.name = document.getElementById('cf_name').value.trim();
+      c.address = document.getElementById('cf_address').value.trim();
+      c.settleType = document.getElementById('cf_settleType').value;
+      c.creditDays = parseInt(document.getElementById('cf_creditDays').value) || 30;
+      c.remark = document.getElementById('cf_remark').value.trim();
+      if (!c.name) { showToast('请填写客户名称'); return; }
+      const ct_names = document.querySelectorAll('.ct_name');
+      const ct_titles = document.querySelectorAll('.ct_title');
+      const ct_phones = document.querySelectorAll('.ct_phone');
+      const ct_wechats = document.querySelectorAll('.ct_wechat');
+      c.contacts = [];
+      ct_names.forEach((_, i) => {
+        c.contacts.push({
+          name: ct_names[i].value.trim(),
+          title: ct_titles[i].value.trim(),
+          phone: ct_phones[i].value.trim(),
+          wechat: ct_wechats[i].value.trim()
+        });
+      });
+      c.contacts = c.contacts.filter(ct => ct.name || ct.phone);
+      c.prices = {};
+      appData.products.forEach(p => {
+        const val = document.getElementById('price_' + p.id)?.value;
+        if (val) c.prices[p.id] = parseFloat(val);
+      });
+      const idx = appData.customers.findIndex(x => x.id === c.id);
+      if (idx >= 0) {
+        appData.customers[idx] = c;
+        addLog('edit', '修改客户', c.name);
+      } else {
+        appData.customers.push(c);
+        addLog('add', '新增客户', c.name);
+      }
+      saveData();
+      closeModal();
+      renderPage();
+      showToast('保存成功');
+    }
+
+    function deleteCustomer() {
+      const c = editingCustomer;
+      confirm('确定删除客户 ' + c.name + '？', () => {
+        appData.customers = appData.customers.filter(x => x.id !== c.id);
+        saveData();
+        addLog('delete', '删除客户', c.name);
+        closeModal();
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
+    // ============ 供应商管理 ============
+    let editingSupplier = null;
+
+    function renderSuppliers() {
+      const list = appData.suppliers;
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-box">
+          <input type="text" placeholder="搜索供应商..." id="supSearch" oninput="document.getElementById('supplierList').innerHTML=renderSupplierList(this.value)">
+          <button onclick="document.getElementById('supplierList').innerHTML=renderSupplierList(document.getElementById('supSearch').value)">🔍</button>
+        </div>
+        <div class="card" id="supplierList">${renderSupplierList('')}</div>
+        <button class="btn btn-primary btn-block" onclick="newSupplier()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 新建供应商</button>`;
+    }
+
+    function renderSupplierList(search) {
+      const list = appData.suppliers.filter(s => !search || s.name.includes(search) || (s.category||'').includes(search));
+      if (!list.length) return '<div class="empty-state"><p>暂无供应商</p></div>';
+      return list.map(s => `<div class="list-item" onclick="editSupplier('${s.id}')">
+        <div class="avatar" style="background:linear-gradient(135deg,#e67e22,#d35400)">🏪</div>
+        <div class="info">
+          <div class="name">${s.name}</div>
+          <div class="desc">${s.contact||''} · ${s.phone||''}</div>
+        </div>
+      </div>`).join('');
+    }
+
+    function newSupplier() {
+      editingSupplier = { id: genId('GY'), name: '', contact: '', phone: '', category: '', remark: '' };
+      showSupplierForm();
+    }
+
+    function editSupplier(id) {
+      editingSupplier = JSON.parse(JSON.stringify(appData.suppliers.find(s => s.id === id)));
+      showSupplierForm();
+    }
+
+    function showSupplierForm() {
+      const s = editingSupplier;
+      openModal(s.id.includes('NEW') ? '新建供应商' : '编辑供应商', `
+        <div class="form-group"><label class="form-label">供应商名称 <span class="required">*</span></label>
+          <input class="form-input" id="sf_name" value="${s.name}"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">联系人</label><input class="form-input" id="sf_contact" value="${s.contact||''}"></div>
+          <div class="form-group"><label class="form-label">电话</label><input class="form-input" id="sf_phone" value="${s.phone||''}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">经营品类</label>
+          <input class="form-input" id="sf_category" value="${s.category||''}" list="supCatList">
+          <datalist id="supCatList">${[...new Set(appData.suppliers.map(x=>x.category).filter(Boolean))].map(c=>`<option value="${c}">`).join('')}</datalist>
+        </div>
+        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="sf_remark">${s.remark||''}</textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-danger" onclick="deleteSupplier()">删除</button>
+         <button class="btn btn-primary" onclick="saveSupplier()">保存</button>`,
+        () => editingSupplier = null
+      );
+    }
+
+    function saveSupplier() {
+      const s = editingSupplier;
+      s.name = document.getElementById('sf_name').value.trim();
+      s.contact = document.getElementById('sf_contact').value.trim();
+      s.phone = document.getElementById('sf_phone').value.trim();
+      s.category = document.getElementById('sf_category').value.trim();
+      s.remark = document.getElementById('sf_remark').value.trim();
+      if (!s.name) { showToast('请填写供应商名称'); return; }
+      const idx = appData.suppliers.findIndex(x => x.id === s.id);
+      if (idx >= 0) { appData.suppliers[idx] = s; addLog('edit', '修改供应商', s.name); }
+      else { appData.suppliers.push(s); addLog('add', '新增供应商', s.name); }
+      saveData();
+      closeModal();
+      renderPage();
+      showToast('保存成功');
+    }
+
+    function deleteSupplier() {
+      const s = editingSupplier;
+      confirm('确定删除供应商 ' + s.name + '？', () => {
+        appData.suppliers = appData.suppliers.filter(x => x.id !== s.id);
+        saveData();
+        addLog('delete', '删除供应商', s.name);
+        closeModal();
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
+    // ============ 采购管理 ============
+    let editingPurchase = null;
+    let purchaseFilter = { search: '', supplierId: '' };
+
+    function renderPurchaseList() {
+      const suppliers = appData.suppliers;
+      let list = appData.purchases.filter(p => {
+        if (purchaseFilter.supplierId && p.supplierId !== purchaseFilter.supplierId) return false;
+        if (purchaseFilter.search && !p.id.includes(purchaseFilter.search)) return false;
+        return true;
+      }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-box">
+          <input type="text" placeholder="搜索单号..." value="${purchaseFilter.search}" onchange="purchaseFilter.search=this.value;renderPurchaseList()">
+          <button onclick="renderPurchaseList()">🔍</button>
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${!purchaseFilter.supplierId?'active':''}" onclick="purchaseFilter.supplierId='';renderPurchaseList()">全部</span>
+          ${suppliers.map(s => `<span class="filter-chip ${purchaseFilter.supplierId===s.id?'active':''}" onclick="purchaseFilter.supplierId='${s.id}';renderPurchaseList()">${s.name}</span>`).join('')}
+        </div>
+        <div class="card">
+          ${list.length ? list.map(p => renderPurchaseItem(p)).join('') : '<div class="empty-state"><p>暂无采购记录</p></div>'}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newPurchase()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 新建采购单</button>`;
+    }
+
+    function renderPurchaseItem(p) {
+      const supplier = appData.suppliers.find(s => s.id === p.supplierId);
+      const total = calcPurchaseTotal(p);
+      return `<div class="list-item" onclick="viewPurchase('${p.id}')">
+        <div class="avatar" style="background:linear-gradient(135deg,#27ae60,#2ecc71)">📦</div>
+        <div class="info">
+          <div class="name">${supplier?.name || '未知供应商'}</div>
+          <div class="desc">${p.id} · ${formatDate(p.date)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:600">${formatMoney(total)}</div>
+          <span class="badge ${p.status==='returned'?'badge-danger':(p.items?.some(i=>i.returned>0)?'badge-warning':'badge-success')}">${p.status==='returned'?'已退货':(p.items?.some(i=>i.returned>0)?'部分退货':'已完成')}</span>
+        </div>
+      </div>`;
+    }
+
+    function calcPurchaseTotal(p) {
+      return (p.items || []).reduce((sum, i) => sum + (i.price * (i.quantity - (i.returned || 0))), 0);
+    }
+
+    function newPurchase() {
+      editingPurchase = {
+        id: genId('CG'), date: new Date().toISOString().slice(0,10),
+        supplierId: '', items: [], status: 'pending', remark: ''
+      };
+      showPurchaseForm();
+    }
+
+    function editPurchase(id) {
+      editingPurchase = JSON.parse(JSON.stringify(appData.purchases.find(p => p.id === id)));
+      showPurchaseForm();
+    }
+
+    function viewPurchase(id) {
+      const p = appData.purchases.find(x => x.id === id);
+      const supplier = appData.suppliers.find(s => s.id === p.supplierId);
+      openModal('采购单详情', `
+        <div class="print-area">
+          <h2 style="text-align:center;margin-bottom:16px">📦 采购单</h2>
+          <div class="detail-row"><span class="detail-label">单号</span><span class="detail-value">${p.id}</span></div>
+          <div class="detail-row"><span class="detail-label">日期</span><span class="detail-value">${formatDate(p.date)}</span></div>
+          <div class="detail-row"><span class="detail-label">供应商</span><span class="detail-value">${supplier?.name||''}</span></div>
+          <div class="detail-row"><span class="detail-label">状态</span><span class="detail-value">${p.status==='returned'?'已退货':'正常'}</span></div>
+          <div style="margin:16px 0;border-top:1px solid #ddd;padding-top:16px">
+            <strong>商品明细</strong>
+            <table class="table" style="margin-top:8px">
+              <thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th></tr></thead>
+              <tbody>
+                ${(p.items||[]).map(i => {
+                  const prod = appData.products.find(x=>x.id===i.productId);
+                  return `<tr><td>${prod?.name||i.productId}</td><td>${i.quantity}${prod?.unit||''}</td><td>${formatMoney(i.price)}</td><td>${formatMoney(i.price*i.quantity)}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span></div>
+          ${p.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${p.remark}</span></div>` : ''}
+        </div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">关闭</button>
+         <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
+         ${p.status!=='returned'?'<button class="btn btn-warning" onclick="returnPurchase(\''+p.id+'\')">退货</button>':''}`,
+        () => {}
+      );
+    }
+
+    function showPurchaseForm(isReturn = false) {
+      const p = editingPurchase;
+      const itemsHtml = (p.items || []).map((item, i) => renderPurchaseItemRow(item, i)).join('');
+      openModal(isReturn ? '采购退货' : (p.id.includes('NEW') ? '新建采购单' : '编辑采购单'), `
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">供应商</label>
+            <select class="form-select" id="pp_supplier">
+              <option value="">请选择供应商</option>
+              ${appData.suppliers.map(s => `<option value="${s.id}" ${p.supplierId===s.id?'selected':''}>${s.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">日期</label>
+            <input class="form-input" type="date" id="pp_date" value="${p.date}">
+          </div>
+        </div>
+        <div class="section-title">商品明细</div>
+        <div id="purchaseItems">${itemsHtml}</div>
+        <button class="btn btn-outline btn-block" onclick="addPurchaseItem()">+ 添加商品</button>
+        <div class="detail-row" style="margin-top:16px">
+          <span class="detail-label">合计</span>
+          <span class="detail-value" id="purchaseTotal" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span>
+        </div>
+        <div class="form-group" style="margin-top:16px"><label class="form-label">备注</label>
+          <textarea class="form-textarea" id="pp_remark">${p.remark||''}</textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-primary" onclick="savePurchase()">保存</button>`,
+        () => editingPurchase = null
+      );
+    }
+
+    function renderPurchaseItemRow(item, idx) {
+      const prod = appData.products.find(p => p.id === item.productId);
+      return `<div class="linkage-row" id="pitem_${idx}">
+        <select class="form-select" style="flex:2" onchange="changePurchaseItem(${idx},'product',this.value)">
+          <option value="">选择商品</option>
+          ${appData.products.map(p => `<option value="${p.id}" ${item.productId===p.id?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+        <input type="number" class="form-input" style="width:60px" placeholder="数量" value="${item.quantity||''}" onchange="changePurchaseItem(${idx},'qty',this.value)">
+        <input type="number" step="0.01" class="form-input" style="width:80px" placeholder="单价" value="${item.price||''}" onchange="changePurchaseItem(${idx},'price',this.value)">
+        <span class="remove-btn" onclick="removePurchaseItem(${idx})">×</span>
+      </div>`;
+    }
+
+    function addPurchaseItem() {
+      editingPurchase.items = editingPurchase.items || [];
+      editingPurchase.items.push({ productId: '', quantity: 1, price: 0 });
+      document.getElementById('purchaseItems').innerHTML = editingPurchase.items.map((item, i) => renderPurchaseItemRow(item, i)).join('');
+    }
+
+    function changePurchaseItem(idx, field, val) {
+      if (field === 'product') {
+        const prod = appData.products.find(p => p.id === val);
+        editingPurchase.items[idx].productId = val;
+        if (prod) editingPurchase.items[idx].price = prod.cost || 0;
+      } else if (field === 'qty') {
+        editingPurchase.items[idx].quantity = parseInt(val) || 0;
+      } else if (field === 'price') {
+        editingPurchase.items[idx].price = parseFloat(val) || 0;
+      }
+      document.getElementById('purchaseTotal').textContent = formatMoney(calcPurchaseTotal(editingPurchase));
+    }
+
+    function removePurchaseItem(idx) {
+      editingPurchase.items.splice(idx, 1);
+      document.getElementById('purchaseItems').innerHTML = editingPurchase.items.map((item, i) => renderPurchaseItemRow(item, i)).join('');
+      document.getElementById('purchaseTotal').textContent = formatMoney(calcPurchaseTotal(editingPurchase));
+    }
+
+    function savePurchase() {
+      const p = editingPurchase;
+      p.supplierId = document.getElementById('pp_supplier').value;
+      p.date = document.getElementById('pp_date').value;
+      p.remark = document.getElementById('pp_remark').value.trim();
+      p.items = p.items.filter(i => i.productId && i.quantity > 0);
+      if (!p.supplierId) { showToast('请选择供应商'); return; }
+      if (!p.items.length) { showToast('请添加商品'); return; }
+      // 更新库存
+      p.items.forEach(item => {
+        appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) + item.quantity;
+        addInventoryLog(item.productId, item.quantity, 'purchase', p.id);
+      });
+      const idx = appData.purchases.findIndex(x => x.id === p.id);
+      if (idx >= 0) appData.purchases[idx] = p;
+      else { p.status = 'completed'; appData.purchases.push(p); }
+      saveData();
+      addLog('purchase', '采购入库', `${p.id} 合计${formatMoney(calcPurchaseTotal(p))}`);
+      closeModal();
+      renderPage();
+      showToast('保存成功');
+    }
+
+    function returnPurchase(id) {
+      const p = appData.purchases.find(x => x.id === id);
+      if (!p) return;
+      editingPurchase = JSON.parse(JSON.stringify(p));
+      editingPurchase.items = p.items.map(i => ({ ...i, quantity: i.returned || 0 }));
+      openModal('采购退货', `
+        <p style="margin-bottom:16px">请输入退货数量</p>
+        ${(p.items||[]).map((item, i) => {
+          const prod = appData.products.find(x=>x.id===item.productId);
+          const maxReturn = item.quantity - (item.returned||0);
+          return `<div class="form-group">
+            <label class="form-label">${prod?.name||item.productId} (可退: ${maxReturn})</label>
+            <input type="number" class="form-input" id="return_qty_${i}" value="0" max="${maxReturn}">
+          </div>`;
+        }).join('')}
+        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="return_remark"></textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-warning" onclick="confirmReturnPurchase('${id}')">确认退货</button>`,
+        () => {}
+      );
+    }
+
+    function confirmReturnPurchase(id) {
+      const p = appData.purchases.find(x => x.id === id);
+      const remark = document.getElementById('return_remark').value;
+      p.items.forEach((item, i) => {
+        const qty = parseInt(document.getElementById('return_qty_' + i).value) || 0;
+        if (qty > 0) {
+          item.returned = (item.returned || 0) + qty;
+          appData.inventory[item.productId] = Math.max(0, (appData.inventory[item.productId] || 0) - qty);
+          addInventoryLog(item.productId, -qty, 'purchase_return', p.id);
+        }
+      });
+      p.status = p.items.every(i => (i.returned||0) >= i.quantity) ? 'returned' : 'partial';
+      p.remark = (p.remark||'') + (remark ? '\n退货:' + remark : '');
+      saveData();
+      addLog('purchase', '采购退货', p.id);
+      closeModal();
+      renderPage();
+      showToast('退货成功');
+    }
+
+    // ============ 销售管理 ============
+    let editingSale = null;
+    let saleFilter = { search: '', customerId: '' };
+
+    function renderSaleList() {
+      let list = appData.sales.filter(s => {
+        if (saleFilter.customerId && s.customerId !== saleFilter.customerId) return false;
+        if (saleFilter.search && !s.id.includes(saleFilter.search)) return false;
+        return true;
+      }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-box">
+          <input type="text" placeholder="搜索单号..." value="${saleFilter.search}" onchange="saleFilter.search=this.value;renderSaleList()">
+          <button onclick="renderSaleList()">🔍</button>
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${!saleFilter.customerId?'active':''}" onclick="saleFilter.customerId='';renderSaleList()">全部</span>
+          ${appData.customers.map(c => `<span class="filter-chip ${saleFilter.customerId===c.id?'active':''}" onclick="saleFilter.customerId='${c.id}';renderSaleList()">${c.name}</span>`).join('')}
+        </div>
+        <div class="card">
+          ${list.length ? list.map(s => renderSaleItem(s)).join('') : '<div class="empty-state"><p>暂无销售记录</p></div>'}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newSale()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 新建销售单</button>`;
+    }
+
+    function renderSaleItem(s) {
+      const customer = appData.customers.find(c => c.id === s.customerId);
+      const total = calcSaleTotal(s);
+      const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+      const status = paid >= total ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
+      return `<div class="list-item" onclick="viewSale('${s.id}')">
+        <div class="avatar" style="background:linear-gradient(135deg,#3498db,#2980b9)">💰</div>
+        <div class="info">
+          <div class="name">${customer?.name || '未知客户'}</div>
+          <div class="desc">${s.id} · ${formatDate(s.date)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:600">${formatMoney(total)}</div>
+          <span class="badge badge-${status==='paid'?'success':(status==='partial'?'warning':'danger')}">${status==='paid'?'已收款':(status==='partial'?'部分收款':'未收款')}</span>
+        </div>
+      </div>`;
+    }
+
+    function calcSaleTotal(s) {
+      return (s.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
+    }
+
+    function newSale() {
+      editingSale = {
+        id: genId('XS'), date: new Date().toISOString().slice(0,10),
+        customerId: '', items: [], payStatus: 'unpaid', remark: ''
+      };
+      showSaleForm();
+    }
+
+    function editSale(id) {
+      editingSale = JSON.parse(JSON.stringify(appData.sales.find(s => s.id === id)));
+      showSaleForm();
+    }
+
+    function viewSale(id) {
+      const s = appData.sales.find(x => x.id === id);
+      const customer = appData.customers.find(c => c.id === s.customerId);
+      const total = calcSaleTotal(s);
+      const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+      openModal('销售单详情', `
+        <div class="print-area">
+          <h2 style="text-align:center;margin-bottom:16px">📄 送货单</h2>
+          <div class="detail-row"><span class="detail-label">单号</span><span class="detail-value">${s.id}</span></div>
+          <div class="detail-row"><span class="detail-label">日期</span><span class="detail-value">${formatDate(s.date)}</span></div>
+          <div class="detail-row"><span class="detail-label">客户</span><span class="detail-value">${customer?.name||''}</span></div>
+          ${customer?.address ? `<div class="detail-row"><span class="detail-label">地址</span><span class="detail-value">${customer.address}</span></div>` : ''}
+          <div style="margin:16px 0;border-top:1px solid #ddd;padding-top:16px">
+            <table class="table">
+              <thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th></tr></thead>
+              <tbody>
+                ${(s.items||[]).map(i => {
+                  const prod = appData.products.find(x=>x.id===i.productId);
+                  return `<tr><td>${prod?.name||i.productId}</td><td>${i.quantity}${prod?.unit||''}</td><td>${formatMoney(i.price)}</td><td>${formatMoney(i.price*i.quantity)}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:20px;color:var(--primary)">${formatMoney(total)}</span></div>
+          <div class="detail-row"><span class="detail-label">已收款</span><span class="detail-value" style="color:var(--success)">${formatMoney(paid)}</span></div>
+          <div class="detail-row"><span class="detail-label">未收款</span><span class="detail-value" style="color:${total-paid>0?'var(--danger)':''}">${formatMoney(total-paid)}</span></div>
+          ${s.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${s.remark}</span></div>` : ''}
+          <div style="margin-top:30px;border-top:1px dashed #ddd;padding-top:16px">
+            <div style="display:flex;justify-content:space-between">
+              <div style="text-align:center"><div style="border-bottom:1px solid #333;width:120px;height:30px"></div><div style="margin-top:4px;font-size:12px">收货人签字</div></div>
+              <div style="text-align:center"><div style="border-bottom:1px solid #333;width:120px;height:30px"></div><div style="margin-top:4px;font-size:12px">送货人签字</div></div>
+            </div>
+          </div>
+        </div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">关闭</button>
+         <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
+         ${paid < total ? `<button class="btn btn-success" onclick="quickReceive('${s.id}')">收款</button>` : ''}
+         <button class="btn btn-warning" onclick="returnSale('${s.id}')">退货</button>`,
+        () => {}
+      );
+    }
+
+    function showSaleForm() {
+      const s = editingSale;
+      const itemsHtml = (s.items || []).map((item, i) => renderSaleItemRow(item, i)).join('');
+      openModal(s.id.includes('NEW') ? '新建销售单' : '编辑销售单', `
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">客户</label>
+            <select class="form-select" id="sf_customer" onchange="onCustomerChange()">
+              <option value="">请选择客户</option>
+              ${appData.customers.map(c => `<option value="${c.id}" ${s.customerId===c.id?'selected':''}>${c.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">日期</label>
+            <input class="form-input" type="date" id="sf_date" value="${s.date}">
+          </div>
+        </div>
+        <div class="section-title">商品明细</div>
+        <div id="saleItems">${itemsHtml}</div>
+        <button class="btn btn-outline btn-block" onclick="addSaleItem()">+ 添加商品</button>
+        <div class="detail-row" style="margin-top:16px">
+          <span class="detail-label">合计</span>
+          <span class="detail-value" id="saleTotal" style="font-size:18px;color:var(--primary)">${formatMoney(calcSaleTotal(s))}</span>
+        </div>
+        <div class="form-row" style="margin-top:16px">
+          <div class="form-group"><label class="form-label">收款状态</label>
+            <select class="form-select" id="sf_payStatus">
+              <option value="unpaid" ${s.payStatus==='unpaid'?'selected':''}>未收款</option>
+              <option value="partial" ${s.payStatus==='partial'?'selected':''}>部分收款</option>
+              <option value="paid" ${s.payStatus==='paid'?'selected':''}>已收款</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">备注</label>
+          <textarea class="form-textarea" id="sf_remark">${s.remark||''}</textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-primary" onclick="saveSale()">保存</button>`,
+        () => editingSale = null
+      );
+    }
+
+    function renderSaleItemRow(item, idx) {
+      const prod = appData.products.find(p => p.id === item.productId);
+      const stock = appData.inventory[item.productId] || 0;
+      return `<div class="linkage-row" id="sitem_${idx}">
+        <select class="form-select" style="flex:2" onchange="changeSaleItem(${idx},'product',this.value)">
+          <option value="">选择商品</option>
+          ${appData.products.map(p => `<option value="${p.id}" ${item.productId===p.id?'selected':''}>${p.name} (库存:${appData.inventory[p.id]||0})</option>`).join('')}
+        </select>
+        <input type="number" class="form-input" style="width:50px" placeholder="数量" value="${item.quantity||''}" onchange="changeSaleItem(${idx},'qty',this.value)">
+        <input type="number" step="0.01" class="form-input" style="width:70px" placeholder="单价" value="${item.price||''}" onchange="changeSaleItem(${idx},'price',this.value)">
+        <span class="remove-btn" onclick="removeSaleItem(${idx})">×</span>
+      </div>`;
+    }
+
+    function onCustomerChange() {
+      const customerId = document.getElementById('sf_customer').value;
+      const customer = appData.customers.find(c => c.id === customerId);
+      editingSale.customerId = customerId;
+      if (customer && editingSale.items.length === 0) {
+        // 可自动带出客户专属价格
+      }
+    }
+
+    function getCustomerPrice(customerId, productId) {
+      const customer = appData.customers.find(c => c.id === customerId);
+      if (customer?.prices?.[productId]) return customer.prices[productId];
+      const prod = appData.products.find(p => p.id === productId);
+      return prod?.price || 0;
+    }
+
+    function addSaleItem() {
+      editingSale.items = editingSale.items || [];
+      editingSale.items.push({ productId: '', quantity: 1, price: 0 });
+      document.getElementById('saleItems').innerHTML = editingSale.items.map((item, i) => renderSaleItemRow(item, i)).join('');
+    }
+
+    function changeSaleItem(idx, field, val) {
+      if (field === 'product') {
+        const prod = appData.products.find(p => p.id === val);
+        editingSale.items[idx].productId = val;
+        if (prod) {
+          editingSale.items[idx].price = getCustomerPrice(editingSale.customerId, val) || prod.price;
+        }
+      } else if (field === 'qty') {
+        editingSale.items[idx].quantity = parseInt(val) || 0;
+      } else if (field === 'price') {
+        editingSale.items[idx].price = parseFloat(val) || 0;
+      }
+      document.getElementById('saleTotal').textContent = formatMoney(calcSaleTotal(editingSale));
+    }
+
+    function removeSaleItem(idx) {
+      editingSale.items.splice(idx, 1);
+      document.getElementById('saleItems').innerHTML = editingSale.items.map((item, i) => renderSaleItemRow(item, i)).join('');
+      document.getElementById('saleTotal').textContent = formatMoney(calcSaleTotal(editingSale));
+    }
+
+    function saveSale() {
+      const s = editingSale;
+      s.customerId = document.getElementById('sf_customer').value;
+      s.date = document.getElementById('sf_date').value;
+      s.payStatus = document.getElementById('sf_payStatus').value;
+      s.remark = document.getElementById('sf_remark').value.trim();
+      s.items = s.items.filter(i => i.productId && i.quantity > 0);
+      if (!s.customerId) { showToast('请选择客户'); return; }
+      if (!s.items.length) { showToast('请添加商品'); return; }
+      // 检查库存
+      for (const item of s.items) {
+        const stock = appData.inventory[item.productId] || 0;
+        if (item.quantity > stock) {
+          const prod = appData.products.find(p => p.id === item.productId);
+          showToast(`${prod?.name || item.productId} 库存不足`); return;
+        }
+      }
+      // 扣减库存
+      s.items.forEach(item => {
+        appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) - item.quantity;
+        addInventoryLog(item.productId, -item.quantity, 'sale', s.id);
+      });
+      const idx = appData.sales.findIndex(x => x.id === s.id);
+      if (idx >= 0) appData.sales[idx] = s;
+      else { appData.sales.push(s); }
+      saveData();
+      addLog('sale', '销售出库', `${s.id} 合计${formatMoney(calcSaleTotal(s))}`);
+      closeModal();
+      renderPage();
+      showToast('保存成功');
+    }
+
+    function quickReceive(saleId) {
+      const s = appData.sales.find(x => x.id === saleId);
+      if (!s) return;
+      const total = calcSaleTotal(s);
+      const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+      const owed = total - paid;
+      openModal('收款', `
+        <div class="form-group"><label class="form-label">客户</label><div style="padding:12px;background:var(--light-gray);border-radius:8px">${appData.customers.find(c=>c.id===s.customerId)?.name||''}</div></div>
+        <div class="form-group"><label class="form-label">本次收款金额</label><input class="form-input" type="number" step="0.01" id="recv_amount" value="${owed.toFixed(2)}"></div>
+        <div class="form-group"><label class="form-label">收款方式</label>
+          <select class="form-select" id="recv_method">
+            <option value="cash">现金</option>
+            <option value="transfer">转账</option>
+            <option value="wechat">微信</option>
+            <option value="alipay">支付宝</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="recv_remark"></textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-success" onclick="confirmReceive('${saleId}')">确认收款</button>`,
+        () => {}
+      );
+    }
+
+    function returnSale(id) {
+      const s = appData.sales.find(x => x.id === id);
+      if (!s) return;
+      openModal('销售退货', `
+        <p style="margin-bottom:16px">请输入退货数量</p>
+        ${(s.items||[]).map((item, i) => {
+          const prod = appData.products.find(x=>x.id===item.productId);
+          return `<div class="form-group">
+            <label class="form-label">${prod?.name||item.productId} (销售: ${item.quantity})</label>
+            <input type="number" class="form-input" id="sale_return_qty_${i}" value="0" max="${item.quantity}">
+          </div>`;
+        }).join('')}
+        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="sale_return_remark"></textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-warning" onclick="confirmReturnSale('${id}')">确认退货</button>`,
+        () => {}
+      );
+    }
+
+    function confirmReturnSale(id) {
+      const s = appData.sales.find(x => x.id === id);
+      const remark = document.getElementById('sale_return_remark').value;
+      s.items.forEach((item, i) => {
+        const qty = parseInt(document.getElementById('sale_return_qty_' + i).value) || 0;
+        if (qty > 0) {
+          appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) + qty;
+          addInventoryLog(item.productId, qty, 'sale_return', s.id);
+        }
+      });
+      s.remark = (s.remark||'') + (remark ? '\n退货:' + remark : '');
+      saveData();
+      addLog('sale', '销售退货', s.id);
+      closeModal();
+      renderPage();
+      showToast('退货成功');
+    }
+
+    // ============ 回款管理 ============
+    function renderPayments() {
+      const list = appData.payments.sort((a, b) => new Date(b.date) - new Date(a.date));
+      document.getElementById('mainContent').innerHTML = `
+        <div class="card">
+          <div class="card-title">收款统计</div>
+          ${renderPaymentSummary()}
+        </div>
+        <div class="card">
+          <div class="card-title">收款记录</div>
+          ${list.length ? list.map(p => {
+            const customer = appData.customers.find(c => c.id === p.customerId);
+            const methodNames = { cash:'现金', transfer:'转账', wechat:'微信', alipay:'支付宝' };
+            return `<div class="list-item">
+              <div class="avatar" style="background:linear-gradient(135deg,#16a085,#1abc9c)">💳</div>
+              <div class="info">
+                <div class="name">${customer?.name||'未知'}</div>
+                <div class="desc">${p.id} · ${formatDate(p.date)} · ${methodNames[p.method]||p.method}</div>
+              </div>
+              <div style="font-weight:600;color:var(--success)">+${formatMoney(p.amount)}</div>
+            </div>`;
+          }).join('') : '<div class="empty-state"><p>暂无收款记录</p></div>'}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newPayment()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 记录收款</button>`;
+    }
+
+    function renderPaymentSummary() {
+      const customers = appData.customers;
+      if (!customers.length) return '<p>暂无客户数据</p>';
+      return `<table class="table">
+        <thead><tr><th>客户</th><th>应收</th><th>已收</th><th>未收</th></tr></thead>
+        <tbody>
+          ${customers.map(c => {
+            let total = 0, paid = 0;
+            appData.sales.filter(s => s.customerId === c.id).forEach(s => {
+              total += calcSaleTotal(s);
+              paid += appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+            });
+            const owed = total - paid;
+            return `<tr>
+              <td>${c.name}</td>
+              <td>${formatMoney(total)}</td>
+              <td style="color:var(--success)">${formatMoney(paid)}</td>
+              <td style="color:${owed>0?'var(--danger)':''}">${formatMoney(owed)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    function newPayment() {
+      openModal('记录收款（支持批量回款）', `
+        <div class="form-group"><label class="form-label">客户</label>
+          <select class="form-select" id="pm_customer">
+            <option value="">请选择客户</option>
+            ${appData.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div id="pm_owedInfo" style="display:none;padding:12px;background:var(--light-gray);border-radius:8px;margin-bottom:16px">
+          <div class="detail-row"><span class="detail-label">未收款销售单</span><span class="detail-value" id="pm_owedCount">0</span></div>
+          <div class="detail-row"><span class="detail-label">欠款总额</span><span class="detail-value" style="color:var(--danger)" id="pm_totalOwed">¥0.00</span></div>
+        </div>
+        <div class="form-group"><label class="form-label">收款金额</label>
+          <input class="form-input" type="number" step="0.01" id="pm_amount" placeholder="0.00">
+        </div>
+        <div class="form-group"><label class="form-label">日期</label>
+          <input class="form-input" type="date" id="pm_date" value="${new Date().toISOString().slice(0,10)}">
+        </div>
+        <div class="form-group"><label class="form-label">收款方式</label>
+          <select class="form-select" id="pm_method">
+            <option value="cash">现金</option>
+            <option value="transfer">转账</option>
+            <option value="wechat">微信</option>
+            <option value="alipay">支付宝</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">关联销售单 (可选，支持批量回款覆盖多张销售单)</label>
+          <select class="form-select" id="pm_saleId">
+            <option value="">不关联（批量回款）</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">备注</label>
+          <textarea class="form-textarea" id="pm_remark"></textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-success" onclick="savePayment()">确认收款</button>`,
+        () => {}
+      );
+      document.getElementById('pm_customer').onchange = function() {
+        const customerId = this.value;
+        const infoDiv = document.getElementById('pm_owedInfo');
+        if (!customerId) { infoDiv.style.display = 'none'; return; }
+        infoDiv.style.display = 'block';
+        let totalOwed = 0, unpaidCount = 0;
+        const unpaidSales = [];
+        appData.sales.filter(s => s.customerId === customerId).forEach(s => {
+          const total = calcSaleTotal(s);
+          const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+          const owed = total - paid;
+          if (owed > 0) { unpaidCount++; totalOwed += owed; unpaidSales.push({id:s.id, owed:owed, total:total}); }
+        });
+        document.getElementById('pm_owedCount').textContent = unpaidCount + '张';
+        document.getElementById('pm_totalOwed').textContent = formatMoney(totalOwed);
+        document.getElementById('pm_amount').value = totalOwed.toFixed(2);
+        document.getElementById('pm_saleId').innerHTML = '<option value="">不关联（批量回款）</option>' + 
+          unpaidSales.map(s => `<option value="${s.id}">${s.id} - 欠款${formatMoney(s.owed)}</option>`).join('');
+      };
+    }
+
+    function savePayment() {
+      const payment = {
+        id: genId('FK'), customerId: document.getElementById('pm_customer').value,
+        amount: parseFloat(document.getElementById('pm_amount').value) || 0,
+        date: document.getElementById('pm_date').value,
+        method: document.getElementById('pm_method').value,
+        saleId: document.getElementById('pm_saleId').value,
+        remark: document.getElementById('pm_remark').value.trim()
+      };
+      if (!payment.customerId) { showToast('请选择客户'); return; }
+      if (!payment.amount) { showToast('请输入收款金额'); return; }
+      appData.payments.push(payment);
+      saveData();
+      const customer = appData.customers.find(c => c.id === payment.customerId);
+      addLog('add', '收款记录', `${customer?.name||''} ${formatMoney(payment.amount)}`);
+      closeModal();
+      renderPage();
+      showToast('收款成功');
+    }
+
+    function confirmReceive(saleId) {
+      const payment = {
+        id: genId('FK'), customerId: appData.sales.find(x=>x.id===saleId)?.customerId,
+        amount: parseFloat(document.getElementById('recv_amount').value) || 0,
+        date: new Date().toISOString().slice(0,10),
+        method: document.getElementById('recv_method').value,
+        saleId: saleId,
+        remark: document.getElementById('recv_remark').value.trim()
+      };
+      if (!payment.amount) { showToast('请输入收款金额'); return; }
+      appData.payments.push(payment);
+      saveData();
+      const customer = appData.customers.find(c => c.id === payment.customerId);
+      addLog('add', '收款记录', `${customer?.name||''} ${formatMoney(payment.amount)}`);
+      closeModal();
+      renderPage();
+      showToast('收款成功');
+    }
+
+    // ============ 库存管理 ============
+    let inventoryFilter = { search: '', brand: '', category: '' };
+
+    function renderInventory() {
+      const brands = [...new Set(appData.products.map(p => p.brand).filter(Boolean))];
+      const categories = [...new Set(appData.products.map(p => p.category).filter(Boolean))];
+      let list = appData.products.filter(p => {
+        if (inventoryFilter.search && !p.name.includes(inventoryFilter.search)) return false;
+        if (inventoryFilter.brand && p.brand !== inventoryFilter.brand) return false;
+        if (inventoryFilter.category && p.category !== inventoryFilter.category) return false;
+        return true;
+      });
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-box">
+          <input type="text" placeholder="搜索商品..." value="${inventoryFilter.search}" onchange="inventoryFilter.search=this.value;renderInventory()">
+          <button onclick="renderInventory()">🔍</button>
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${!inventoryFilter.brand?'active':''}" onclick="inventoryFilter.brand='';renderInventory()">全部品牌</span>
+          ${brands.map(b => `<span class="filter-chip ${inventoryFilter.brand===b?'active':''}" onclick="inventoryFilter.brand='${b}';renderInventory()">${b}</span>`).join('')}
+        </div>
+        <div class="card">
+          ${list.length ? `<table class="table"><thead><tr><th>商品</th><th>库存</th><th>操作</th></tr></thead><tbody>
+            ${list.map(p => {
+              const stock = appData.inventory[p.id] || 0;
+              const isLow = stock < (p.minStock || 0);
+              return `<tr>
+                <td>${p.name}${isLow?' ⚠️':''}</td>
+                <td class="${isLow?'inventory-low':''}">${stock}${p.unit||''}</td>
+                <td><button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="adjustInventory('${p.id}')">调整</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody></table>` : '<div class="empty-state"><p>暂无商品</p></div>'}
+        </div>
+        <div class="card">
+          <div class="card-title">库存变动记录</div>
+          ${renderInventoryLogs()}
+        </div>`;
+    }
+
+    function renderInventoryLogs() {
+      const logs = appData.inventoryLogs.slice(0, 20);
+      if (!logs.length) return '<p style="color:var(--gray)">暂无记录</p>';
+      const typeNames = { purchase:'采购入库', sale:'销售出库', purchase_return:'采购退货', sale_return:'销售退货', adjust:'库存调整' };
+      return logs.map(log => {
+        const prod = appData.products.find(p => p.id === log.productId);
+        const sign = log.change > 0 ? '+' : '';
+        return `<div class="list-item" style="padding:8px 0">
+          <div class="info">
+            <div class="name" style="font-size:13px">${prod?.name||log.productId}</div>
+            <div class="desc">${typeNames[log.type]||log.type} · ${formatDate(log.time)}</div>
+          </div>
+          <span style="color:${log.change>0?'var(--success)':'var(--danger)'};font-weight:600">${sign}${log.change}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function adjustInventory(productId) {
+      const prod = appData.products.find(p => p.id === productId);
+      const current = appData.inventory[productId] || 0;
+      openModal('库存盘点 - ' + prod?.name, `
+        <div class="form-group"><label class="form-label">当前库存</label><div style="padding:12px;background:var(--light-gray);border-radius:8px;font-size:18px;font-weight:600">${current}</div></div>
+        <div class="form-group"><label class="form-label">调整后库存</label><input class="form-input" type="number" id="adj_stock" value="${current}"></div>
+        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="adj_remark" placeholder="说明调整原因"></textarea></div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-primary" onclick="confirmAdjustInventory('${productId}')">确认</button>`,
+        () => {}
+      );
+    }
+
+    function confirmAdjustInventory(productId) {
+      const newStock = parseInt(document.getElementById('adj_stock').value) || 0;
+      const current = appData.inventory[productId] || 0;
+      const change = newStock - current;
+      appData.inventory[productId] = newStock;
+      addInventoryLog(productId, change, 'adjust', '');
+      saveData();
+      addLog('edit', '库存调整', `${appData.products.find(p=>p.id===productId)?.name||productId} ${change>0?'+':''}${change}`);
+      closeModal();
+      renderPage();
+      showToast('库存已调整');
+    }
+
+    function addInventoryLog(productId, change, type, refId) {
+      appData.inventoryLogs.unshift({
+        id: Date.now(), productId, change, type, refId, time: new Date().toISOString()
+      });
+      if (appData.inventoryLogs.length > 500) appData.inventoryLogs.pop();
+    }
+
+    function showLowStock() {
+      const low = appData.products.filter(p => appData.inventory[p.id] < (p.minStock || 0));
+      if (!low.length) { showToast('库存充足'); return; }
+      openModal('库存预警', `
+        <table class="table">
+          <thead><tr><th>商品</th><th>当前库存</th><th>安全库存</th></tr></thead>
+          <tbody>
+            ${low.map(p => `<tr>
+              <td>${p.name}</td>
+              <td class="inventory-low">${appData.inventory[p.id]||0}</td>
+              <td>${p.minStock||0}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`,
+        `<button class="btn btn-outline" onclick="closeModal()">关闭</button>`,
+        () => {}
+      );
+    }
+
+    // ============ 统计报表 ============
+    let currentReport = 'sale_rank';
+
+    function renderReports() {
+      const reportTabs = [
+        { id: 'sale_rank', name: '销售排行' },
+        { id: 'customer_owed', name: '客户欠款' },
+        { id: 'profit', name: '利润统计' },
+        { id: 'purchase_stat', name: '采购统计' },
+        { id: 'low_stock', name: '库存预警' },
+        { id: 'monthly', name: '月度汇总' }
+      ];
+      document.getElementById('mainContent').innerHTML = `
+        <div class="tab-sub">
+          ${reportTabs.map(t => `<div class="tab-sub-item ${currentReport===t.id?'active':''}" onclick="currentReport='${t.id}';renderReports()">${t.name}</div>`).join('')}
+        </div>
+        <div id="reportContent">${renderReportContent()}</div>`;
+    }
+
+    function renderReportContent() {
+      switch(currentReport) {
+        case 'sale_rank': return renderSaleRankReport();
+        case 'customer_owed': return renderCustomerOwedReport();
+        case 'profit': return renderProfitReport();
+        case 'purchase_stat': return renderPurchaseStatReport();
+        case 'low_stock': return renderLowStockReport();
+        case 'monthly': return renderMonthlyReport();
+        default: return '';
+      }
+    }
+
+    function renderSaleRankReport() {
+      const stats = {};
+      appData.sales.forEach(s => {
+        (s.items||[]).forEach(item => {
+          if (!stats[item.productId]) stats[item.productId] = { qty: 0, amount: 0 };
+          stats[item.productId].qty += item.quantity;
+          stats[item.productId].amount += item.price * item.quantity;
+        });
+      });
+      const sorted = Object.entries(stats).sort((a, b) => b[1].amount - a[1].amount);
+      if (!sorted.length) return '<div class="empty-state"><p>暂无销售数据</p></div>';
+      return `<div class="report-card">
+        <h3>商品销售排行（按销售额）</h3>
+        <table class="table"><thead><tr><th>排名</th><th>商品</th><th>销量</th><th>销售额</th></tr></thead>
+        <tbody>${sorted.map(([pid, s], i) => {
+          const prod = appData.products.find(p => p.id === pid);
+          return `<tr><td>${i+1}</td><td>${prod?.name||pid}</td><td>${s.qty}</td><td>${formatMoney(s.amount)}</td></tr>`;
+        }).join('')}</tbody></table></div>`;
+    }
+
+    function renderCustomerOwedReport() {
+      const stats = appData.customers.map(c => {
+        let total = 0, paid = 0;
+        appData.sales.filter(s => s.customerId === c.id).forEach(s => {
+          total += calcSaleTotal(s);
+          paid += appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+        });
+        return { name: c.name, total, paid, owed: total - paid };
+      }).sort((a, b) => b.owed - a.owed);
+      if (!stats.length) return '<div class="empty-state"><p>暂无客户数据</p></div>';
+      return `<div class="report-card">
+        <h3>客户欠款排名</h3>
+        <table class="table"><thead><tr><th>客户</th><th>应收</th><th>已收</th><th>未收</th></tr></thead>
+        <tbody>${stats.map(s => `<tr>
+          <td>${s.name}</td><td>${formatMoney(s.total)}</td><td style="color:var(--success)">${formatMoney(s.paid)}</td>
+          <td style="color:${s.owed>0?'var(--danger)':''};font-weight:600">${formatMoney(s.owed)}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function renderProfitReport() {
+      let totalSale = 0, totalCost = 0;
+      appData.sales.forEach(s => {
+        (s.items||[]).forEach(item => {
+          const prod = appData.products.find(p => p.id === item.productId);
+          totalSale += item.price * item.quantity;
+          totalCost += (prod?.cost || 0) * item.quantity;
+        });
+      });
+      const profit = totalSale - totalCost;
+      return `<div class="report-card">
+        <h3>利润统计</h3>
+        <div class="detail-row"><span class="detail-label">销售收入</span><span class="detail-value">${formatMoney(totalSale)}</span></div>
+        <div class="detail-row"><span class="detail-label">销售成本</span><span class="detail-value">${formatMoney(totalCost)}</span></div>
+        <div class="detail-row"><span class="detail-label" style="font-size:16px">毛利润</span><span class="detail-value" style="font-size:20px;color:var(--success)">${formatMoney(profit)}</span></div>
+        <div class="detail-row"><span class="detail-label">毛利率</span><span class="detail-value">${totalSale > 0 ? (profit/totalSale*100).toFixed(1) : 0}%</span></div>
+      </div>`;
+    }
+
+    function renderPurchaseStatReport() {
+      let total = 0;
+      appData.purchases.forEach(p => total += calcPurchaseTotal(p));
+      const bySupplier = {};
+      appData.purchases.forEach(p => {
+        const name = appData.suppliers.find(s => s.id === p.supplierId)?.name || '未知';
+        if (!bySupplier[name]) bySupplier[name] = 0;
+        bySupplier[name] += calcPurchaseTotal(p);
+      });
+      return `<div class="report-card">
+        <h3>采购统计</h3>
+        <div class="detail-row"><span class="detail-label">采购总额</span><span class="detail-value" style="font-size:20px;color:var(--primary)">${formatMoney(total)}</span></div>
+        <h4 style="margin-top:16px">按供应商</h4>
+        <table class="table"><thead><tr><th>供应商</th><th>采购额</th></tr></thead>
+        <tbody>${Object.entries(bySupplier).map(([name, amt]) => `<tr><td>${name}</td><td>${formatMoney(amt)}</td></tr>`).join('')}</tbody></table>
+      </div>`;
+    }
+
+    function renderLowStockReport() {
+      const low = appData.products.filter(p => appData.inventory[p.id] < (p.minStock || 0));
+      if (!low.length) return '<div class="report-card"><h3>库存预警</h3><p>所有商品库存充足</p></div>';
+      return `<div class="report-card">
+        <h3>库存预警报表</h3>
+        <table class="table"><thead><tr><th>商品</th><th>当前库存</th><th>安全库存</th><th>差距</th></tr></thead>
+        <tbody>${low.map(p => {
+          const stock = appData.inventory[p.id] || 0;
+          return `<tr>
+            <td>${p.name}</td><td class="inventory-low">${stock}</td><td>${p.minStock||0}</td>
+            <td style="color:var(--danger)">-${(p.minStock||0)-stock}</td>
+          </tr>`;
+        }).join('')}</tbody></table></div>`;
+    }
+
+    function renderMonthlyReport() {
+      const months = {};
+      appData.sales.forEach(s => {
+        const m = s.date.slice(0,7);
+        if (!months[m]) months[m] = { sale: 0, cost: 0 };
+        (s.items||[]).forEach(item => {
+          const prod = appData.products.find(p => p.id === item.productId);
+          months[m].sale += item.price * item.quantity;
+          months[m].cost += (prod?.cost || 0) * item.quantity;
+        });
+      });
+      appData.purchases.forEach(p => {
+        const m = p.date.slice(0,7);
+        if (!months[m]) months[m] = { sale: 0, cost: 0, purchase: 0 };
+        if (!months[m].purchase) months[m].purchase = 0;
+        months[m].purchase += calcPurchaseTotal(p);
+      });
+      const sorted = Object.entries(months).sort((a, b) => b[0].localeCompare(a[0]));
+      if (!sorted.length) return '<div class="report-card"><h3>月度汇总</h3><p>暂无数据</p></div>';
+      return `<div class="report-card">
+        <h3>月度汇总</h3>
+        <table class="table"><thead><tr><th>月份</th><th>销售额</th><th>采购额</th><th>毛利</th></tr></thead>
+        <tbody>${sorted.map(([m, d]) => `<tr>
+          <td>${m}</td><td>${formatMoney(d.sale)}</td><td>${formatMoney(d.purchase||0)}</td>
+          <td style="color:var(--success)">${formatMoney(d.sale - d.cost)}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    // ============ 客户对账单 ============
+    function renderStatement() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="card">
+          <div class="form-group"><label class="form-label">选择客户</label>
+            <select class="form-select" id="stmt_customer">
+              <option value="">请选择客户</option>
+              ${appData.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">开始日期</label>
+              <input class="form-input" type="date" id="stmt_start" value="${new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10)}">
+            </div>
+            <div class="form-group"><label class="form-label">结束日期</label>
+              <input class="form-input" type="date" id="stmt_end" value="${new Date().toISOString().slice(0,10)}">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="generateStatement()">生成对账单</button>
+        </div>
+        <div id="statementResult"></div>`;
+    }
+
+    function generateStatement() {
+      const customerId = document.getElementById('stmt_customer').value;
+      const startDate = document.getElementById('stmt_start').value;
+      const endDate = document.getElementById('stmt_end').value;
+      if (!customerId) { showToast('请选择客户'); return; }
+      const customer = appData.customers.find(c => c.id === customerId);
+      const sales = appData.sales.filter(s => s.customerId === customerId && s.date >= startDate && s.date <= endDate);
+      const payments = appData.payments.filter(p => p.customerId === customerId && p.date >= startDate && p.date <= endDate);
+      // 期初欠款
+      let beginOwed = 0;
+      appData.sales.filter(s => s.customerId === customerId && s.date < startDate).forEach(s => {
+        beginOwed += calcSaleTotal(s);
+        beginOwed -= appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+      });
+      const totalSale = sales.reduce((sum, s) => sum + calcSaleTotal(s), 0);
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const endOwed = beginOwed + totalSale - totalPaid;
+      const methodNames = { cash:'现金', transfer:'转账', wechat:'微信', alipay:'支付宝' };
+      document.getElementById('statementResult').innerHTML = `
+        <div class="report-card print-area">
+          <h2 style="text-align:center;margin-bottom:16px">📋 客户对账单</h2>
+          <div class="detail-row"><span class="detail-label">客户名称</span><span class="detail-value">${customer?.name||''}</span></div>
+          ${customer?.address ? `<div class="detail-row"><span class="detail-label">地址</span><span class="detail-value">${customer.address}</span></div>` : ''}
+          <div class="detail-row"><span class="detail-label">对账期间</span><span class="detail-value">${startDate} 至 ${endDate}</span></div>
+          <div class="detail-row"><span class="detail-label">期初欠款</span><span class="detail-value">${formatMoney(beginOwed)}</span></div>
+          <h4 style="margin:16px 0">本期销售明细</h4>
+          ${sales.length ? `<table class="table"><thead><tr><th>单号</th><th>日期</th><th>金额</th></tr></thead>
+            <tbody>${sales.map(s => `<tr><td>${s.id}</td><td>${formatDate(s.date)}</td><td>${formatMoney(calcSaleTotal(s))}</td></tr>`).join('')}
+            </tbody></table><div style="text-align:right;margin-top:8px;font-weight:600">合计: ${formatMoney(totalSale)}</div>` : '<p>无销售记录</p>'}
+          <h4 style="margin:16px 0">本期回款明细</h4>
+          ${payments.length ? `<table class="table"><thead><tr><th>日期</th><th>方式</th><th>金额</th></tr></thead>
+            <tbody>${payments.map(p => `<tr><td>${formatDate(p.date)}</td><td>${methodNames[p.method]||p.method}</td><td>${formatMoney(p.amount)}</td></tr>`).join('')}
+            </tbody></table><div style="text-align:right;margin-top:8px;font-weight:600">合计: ${formatMoney(totalPaid)}</div>` : '<p>无回款记录</p>'}
+          <div class="detail-row" style="margin-top:16px;border-top:2px solid var(--primary);padding-top:16px">
+            <span class="detail-label">期末欠款</span>
+            <span class="detail-value" style="font-size:20px;color:${endOwed>0?'var(--danger)':'var(--success)'}">${formatMoney(endOwed)}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px" class="no-print">
+          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
+          <button class="btn btn-primary" onclick="exportStatement()">📥 导出</button>
+        </div>`;
+    }
+
+    function exportStatement() {
+      const result = document.querySelector('.print-area');
+      html2canvas(result).then(canvas => {
+        const link = document.createElement('a');
+        link.download = '对账单_' + new Date().toISOString().slice(0,10) + '.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
+
+    // ============ 设置 ============
+    function renderSettings() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="card">
+          <div class="card-title">数据管理</div>
+          <button class="btn btn-outline btn-block" onclick="exportData()" style="margin-bottom:10px">📤 导出Excel</button>
+          <button class="btn btn-outline btn-block" onclick="exportJson()" style="margin-bottom:10px">📥 导出JSON备份</button>
+          <button class="btn btn-outline btn-block" onclick="document.getElementById('importFile').click()" style="margin-bottom:10px">📂 导入数据</button>
+          <input type="file" id="importFile" accept=".json,.xlsx" style="display:none" onchange="importData(this.files[0])">
+        </div>
+        <div class="card">
+          <div class="card-title">云端同步</div>
+          <div class="sync-status">
+            <span class="sync-dot ${appData.githubToken?'connected':' '}"></span>
+            <span>${appData.githubToken?'已配置GitHub Token':'未配置'}</span>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">GitHub Token</label>
+            <input class="form-input" type="password" id="githubToken" value="${appData.githubToken||''}" placeholder="输入GitHub Personal Access Token">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="saveGithubToken()">保存Token</button>
+          ${appData.githubToken ? '<button class="btn btn-success btn-block" onclick="syncToGithub()" style="margin-top:10px">☁️ 手动同步到云端</button>' : ''}
+        </div>
+        <div class="card">
+          <div class="card-title">系统信息</div>
+          <div class="detail-row"><span class="detail-label">商品数量</span><span class="detail-value">${appData.products.length}</span></div>
+          <div class="detail-row"><span class="detail-label">客户数量</span><span class="detail-value">${appData.customers.length}</span></div>
+          <div class="detail-row"><span class="detail-label">供应商数量</span><span class="detail-value">${appData.suppliers.length}</span></div>
+          <div class="detail-row"><span class="detail-label">销售单数量</span><span class="detail-value">${appData.sales.length}</span></div>
+          <div class="detail-row"><span class="detail-label">采购单数量</span><span class="detail-value">${appData.purchases.length}</span></div>
+          <div class="detail-row"><span class="detail-label">最后同步</span><span class="detail-value">${appData.settings.lastSync ? formatDate(appData.settings.lastSync) : '从未同步'}</span></div>
+        </div>
+        <div class="card">
+          <button class="btn btn-danger btn-block" onclick="clearAllData()">🗑️ 清空所有数据</button>
+        </div>`;
+    }
+
+    function saveGithubToken() {
+      appData.githubToken = document.getElementById('githubToken').value.trim();
+      saveData();
+      showToast('Token已保存');
+      renderPage();
+    }
+
+    function syncToGithub() {
+      if (!appData.githubToken) { showToast('请先配置GitHub Token'); return; }
+      showToast('同步功能开发中...');
+    }
+
+    function exportData() {
+      const wb = XLSX.utils.book_new();
+      const sheets = {
+        '商品': appData.products,
+        '客户': appData.customers.map(c => ({...c, contacts: JSON.stringify(c.contacts), prices: JSON.stringify(c.prices)})),
+        '供应商': appData.suppliers,
+        '采购单': appData.purchases,
+        '销售单': appData.sales,
+        '回款': appData.payments,
+        '库存': Object.entries(appData.inventory).map(([k,v]) => ({商品ID:k,库存:v}))
+      };
+      Object.entries(sheets).forEach(([name, data]) => {
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      });
+      XLSX.writeFile(wb, '进销存数据_' + new Date().toISOString().slice(0,10) + '.xlsx');
+      showToast('导出成功');
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = '进销存备份_' + new Date().toISOString().slice(0,10) + '.json';
+      link.click();
+      showToast('备份已下载');
+    }
+
+    function importData(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (confirm('确定要导入数据吗？这将覆盖现有数据！')) {
+            appData = { ...DEFAULT_DATA, ...data };
+            saveData();
+            showToast('导入成功');
+            renderPage();
+          }
+        } catch(err) {
+          showToast('导入失败：文件格式错误');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearAllData() {
+      confirm('确定要清空所有数据吗？此操作不可恢复！', () => {
+        appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        saveData();
+        showToast('数据已清空');
+        renderPage();
+      });
+    }
+
+    // ============ 操作日志 ============
+    function renderLogs() {
+      const logs = appData.operationLogs;
+      document.getElementById('mainContent').innerHTML = `
+        <div class="card">
+          ${logs.length ? logs.slice(0, 50).map(log => `
+            <div class="log-item">
+              <div class="log-time">${formatDate(log.time)} ${new Date(log.time).toLocaleTimeString('zh-CN')}</div>
+              <div class="log-content">
+                <span class="log-type ${log.type}">${log.type}</span>
+                ${log.content}
+                ${log.detail ? ' - ' + log.detail : ''}
+              </div>
+            </div>`).join('') : '<div class="empty-state"><p>暂无操作记录</p></div>'}
+        </div>`;
+    }
+
+    // ============ 更多页面 ============
+    function renderMore() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="card">
+          <div class="sub-menu">
+            ${moreItems.slice(0, 6).map(item => `
+              <div class="sub-menu-item" onclick="switchPage('${item.id}')">
+                <span class="icon">${item.icon}</span>
+                <span class="name">${item.name}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="sub-menu">
+            ${moreItems.slice(6).map(item => `
+              <div class="sub-menu-item" onclick="switchPage('${item.id}')">
+                <span class="icon">${item.icon}</span>
+                <span class="name">${item.name}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    // ============ 打印功能 ============
+    function printContent() {
+      window.print();
+    }
+
+    // ============ Service Worker ============
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'jxc-v1';
+        self.addEventListener('install', e => self.skipWaiting());
+        self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+        self.addEventListener('fetch', e => {
+          e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+        });
+      `;
+      const blob = new Blob([swCode], {type: 'application/javascript'});
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+
+    // ============ 初始化 ============
+    renderTabBar();
+    renderPage();
+
+    // 添加一些示例数据以便测试
+    if (appData.products.length === 0) {
+      appData.products = [
+        { id: 'SP-20240101-001', name: '矿泉水', brand: '农夫山泉', category: '饮料', spec: '550ml*24', unit: '箱', cost: 12, price: 18, minStock: 50, remark: '' },
+        { id: 'SP-20240101-002', name: '方便面', brand: '康师傅', category: '食品', spec: '红烧牛肉面', unit: '箱', cost: 28, price: 35, minStock: 30, remark: '' },
+        { id: 'SP-20240101-003', name: '纸巾', brand: '清风', category: '日用品', spec: '抽纸', unit: '提', cost: 8, price: 12, minStock: 20, remark: '' }
+      ];
+      appData.customers = [
+        { id: 'KH-20240101-001', name: '张三商店', address: 'XX路123号', settleType: 'cash', creditDays: 30, remark: '', contacts: [{name:'张三',phone:'13800138001',wechat:'zhangsan',title:'老板'}], prices: {} },
+        { id: 'KH-20240101-002', name: '李四超市', address: 'YY路456号', settleType: 'monthly', creditDays: 30, remark: '', contacts: [], prices: {} }
+      ];
+      appData.suppliers = [
+        { id: 'GY-20240101-001', name: '饮料批发商', contact: '王五', phone: '13900139001', category: '饮料', remark: '' },
+        { id: 'GY-20240101-002', name: '食品批发商', contact: '赵六', phone: '13700137001', category: '食品', remark: '' }
+      ];
+      appData.inventory = {
+        'SP-20240101-001': 100, 'SP-20240101-002': 50, 'SP-20240101-003': 30
+      };
+      appData.products.forEach(p => { if (!appData.inventory[p.id]) appData.inventory[p.id] = 0; });
+      saveData();
+    }
+  </script>
+</body>
+</html>

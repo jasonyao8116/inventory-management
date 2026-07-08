@@ -180,6 +180,8 @@
   <script>
     // ============ 数据存储 ============
     const DB_KEY = 'jxc_data';
+    const GITHUB_REPO = 'jasonyao8116/inventory-management';
+    const GITHUB_DATA_FILE = 'data.json';
     const DEFAULT_DATA = {
       products: [], customers: [], suppliers: [],
       customerPrices: {}, purchases: [], sales: [], payments: [],
@@ -198,6 +200,89 @@
 
     function saveData() {
       localStorage.setItem(DB_KEY, JSON.stringify(appData));
+    }
+
+    // ============ GitHub 云端同步 ============
+    function encodeBase64(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+    function decodeBase64(str) {
+      return decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
+    }
+
+    async function fetchGitHubFile() {
+      const token = appData.githubToken;
+      if (!token) throw new Error('未配置Token');
+      const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+      });
+      if (res.status === 404) return { data: null, sha: null };
+      if (!res.ok) throw new Error('GitHub API错误: ' + res.status);
+      const json = await res.json();
+      let data = null;
+      if (json.content) {
+        data = JSON.parse(decodeBase64(json.content));
+      }
+      return { data, sha: json.sha };
+    }
+
+    async function uploadToCloud() {
+      const token = appData.githubToken;
+      if (!token) { showToast('请先配置GitHub Token'); return; }
+      showToast('正在上传到云端...');
+      try {
+        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
+        const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
+        // 先获取已有文件的sha（用于更新）
+        let sha = null;
+        try {
+          const existing = await fetchGitHubFile();
+          sha = existing.sha;
+        } catch(e) {}
+        const body = {
+          message: `同步数据 ${new Date().toLocaleString('zh-CN')}`,
+          content: encodeBase64(JSON.stringify(appData, null, 2))
+        };
+        if (sha) body.sha = sha;
+        const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+        if (res.ok) {
+          appData.settings.lastSync = new Date().toISOString();
+          saveData();
+          showToast('✅ 上传成功！');
+          renderPage();
+        } else {
+          const err = await res.text();
+          showToast('❌ 上传失败: ' + res.status);
+          console.error('Upload error:', err);
+        }
+      } catch(e) {
+        showToast('❌ 上传失败: ' + e.message);
+        console.error('Upload error:', e);
+      }
+    }
+
+    async function downloadFromCloud() {
+      const token = appData.githubToken;
+      if (!token) { showToast('请先配置GitHub Token'); return; }
+      showToast('正在从云端下载...');
+      try {
+        const { data } = await fetchGitHubFile();
+        if (!data) { showToast('⚠️ 云端暂无数据'); return; }
+        if (confirm('从云端下载将覆盖本地数据，确定继续吗？')) {
+          // 保留token和设置
+          const token = appData.githubToken;
+          appData = { ...DEFAULT_DATA, ...data, githubToken: token };
+          saveData();
+          appData.settings.lastSync = new Date().toISOString();
+          saveData();
+          showToast('✅ 下载成功！');
+          renderPage();
+        }
+      } catch(e) {
+        showToast('❌ 下载失败: ' + e.message);
+        console.error('Download error:', e);
+      }
     }
 
     function addLog(type, content, detail = '') {
@@ -1896,12 +1981,13 @@
             <span class="sync-dot ${appData.githubToken?'connected':' '}"></span>
             <span>${appData.githubToken?'已配置GitHub Token':'未配置'}</span>
           </div>
+          ${appData.settings.lastSync ? '<div style="font-size:12px;color:var(--text-light);margin-top:4px">上次同步: '+formatDate(appData.settings.lastSync)+'</div>' : ''}
           <div class="form-group" style="margin-top:12px">
             <label class="form-label">GitHub Token</label>
             <input class="form-input" type="password" id="githubToken" value="${appData.githubToken||''}" placeholder="输入GitHub Personal Access Token">
           </div>
           <button class="btn btn-primary btn-block" onclick="saveGithubToken()">保存Token</button>
-          ${appData.githubToken ? '<button class="btn btn-success btn-block" onclick="syncToGithub()" style="margin-top:10px">☁️ 手动同步到云端</button>' : ''}
+          ${appData.githubToken ? '<button class="btn btn-success btn-block" onclick="uploadToCloud()" style="margin-top:10px">☁️ 上传到云端</button><button class="btn btn-outline btn-block" onclick="downloadFromCloud()" style="margin-top:8px">⬇️ 从云端下载</button>' : ''}
         </div>
         <div class="card">
           <div class="card-title">系统信息</div>
@@ -1924,10 +2010,7 @@
       renderPage();
     }
 
-    function syncToGithub() {
-      if (!appData.githubToken) { showToast('请先配置GitHub Token'); return; }
-      showToast('同步功能开发中...');
-    }
+
 
     function exportData() {
       const wb = XLSX.utils.book_new();

@@ -232,34 +232,59 @@
       if (!token) { showToast('请先配置GitHub Token'); return; }
       showToast('正在上传到云端...');
       const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
-      const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
+      const authHeaders = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
       const content = encodeBase64(JSON.stringify(appData, null, 2));
-      // 最多尝试2次（处理SHA冲突）
-      for (let attempt = 0; attempt < 2; attempt++) {
+
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
+          // 第1步：获取当前文件的SHA
           let sha = null;
+          let getFileStatus = 0;
           try {
-            const res = await fetch(url, { headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' } });
-            if (res.ok) { const d = await res.json(); sha = d.sha; }
-          } catch(e) {}
+            const getRes = await fetch(url, { headers: authHeaders, cache: 'no-store' });
+            getFileStatus = getRes.status;
+            if (getRes.ok) {
+              const d = await getRes.json();
+              sha = d.sha;
+            }
+          } catch(e) {
+            console.error('GET文件失败:', e.message);
+          }
+
+          // 第2步：构建请求体
           const body = { message: `同步数据 ${new Date().toLocaleString('zh-CN')}`, content };
           if (sha) body.sha = sha;
-          const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
-          if (res.ok) {
+
+          // 第3步：PUT上传
+          const putRes = await fetch(url, {
+            method: 'PUT',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+
+          if (putRes.ok) {
             appData.settings.lastSync = new Date().toISOString();
             saveData();
             showToast('✅ 上传成功！');
             renderPage();
             return;
-          } else if (res.status === 409 && attempt === 0) {
-            console.log('SHA冲突，重试中...');
-            await new Promise(r => setTimeout(r, 1000));
-            continue;
-          } else {
-            showToast('❌ 上传失败: ' + res.status);
-            return;
           }
+
+          // 409=SHA冲突，重试时重新获取SHA
+          if (putRes.status === 409 && attempt < 2) {
+            console.log(`第${attempt+1}次409冲突，1秒后重试(GET状态:${getFileStatus}, SHA:${sha||'null'})...`);
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+
+          // 其他错误
+          let errMsg = '';
+          try { errMsg = (await putRes.text()).slice(0, 100); } catch(e) {}
+          console.error(`PUT失败: status=${putRes.status}, GET状态=${getFileStatus}, SHA=${sha||'null'}`, errMsg);
+          showToast('❌ 上传失败: ' + putRes.status);
+          return;
         } catch(e) {
+          console.error('上传异常:', e);
           showToast('❌ 上传失败: ' + e.message);
           return;
         }

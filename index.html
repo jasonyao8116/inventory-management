@@ -619,6 +619,22 @@
             recent.map(r => '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>' + formatDate(r.date) + '</span><span>' + r.qty + (appData.products.find(x=>x.id===p.id)?.unit||'') + ' × ' + formatMoney(r.price) + '</span></div>').join('') +
             '</div>';
         })() : ''}
+        ${p.id && !p.id.includes('NEW') && appData.customers.length > 0 ? (() => {
+          const custPrices = appData.customers.map(c => ({
+            name: c.name,
+            price: c.prices?.[p.id] ?? null
+          })).filter(x => x.price !== null);
+          let html = '<div class="section-title">客户售价查询</div>';
+          html += '<div class="detail-row"><span class="detail-label">默认售价</span><span class="detail-value" style="font-weight:600">' + formatMoney(p.price) + '</span></div>';
+          if (custPrices.length === 0) {
+            html += '<p style="color:var(--gray);font-size:12px;margin-top:6px">暂无客户专属价格，在客户管理中设置</p>';
+          } else {
+            html += '<div style="margin-top:8px">' + custPrices.map(x =>
+              '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #f0f0f0"><span style="color:var(--text)">' + x.name + '</span><span style="font-weight:600;color:var(--primary)">' + formatMoney(x.price) + '</span></div>'
+            ).join('') + '</div>';
+          }
+          return html;
+        })() : ''}
         <div class="form-group" style="margin-top:12px"><label class="form-label">备注</label><textarea class="form-textarea" id="pf_remark">${p.remark||''}</textarea></div>`,
         `<button class="btn btn-outline" onclick="closeModal()">取消</button>
          <button class="btn btn-primary" onclick="saveProduct()">保存</button>`,

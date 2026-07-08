@@ -415,10 +415,12 @@
       }
     }
 
+    let _confirmCallback = null;
     function confirm(msg, callback) {
+      _confirmCallback = callback;
       openModal('确认', `<p style="text-align:center;padding:20px;">${msg}</p>`,
         `<button class="btn btn-outline" onclick="closeModal()">取消</button>
-         <button class="btn btn-danger" onclick="closeModal();(${callback})()">确认</button>`);
+         <button class="btn btn-danger" onclick="closeModal();if(typeof _confirmCallback==='function'){_confirmCallback();_confirmCallback=null;}">确认</button>`);
     }
 
     // ============ Tab导航 ============
@@ -680,7 +682,7 @@
           return html;
         })() : ''}
         <div class="form-group" style="margin-top:12px"><label class="form-label">备注</label><textarea class="form-textarea" id="pf_remark">${p.remark||''}</textarea></div>`,
-        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+        `${p.id && !p.id.includes('NEW') ? '<button class="btn btn-danger" onclick="deleteProduct(\''+p.id+'\')">删除</button>' : ''}<button class="btn btn-outline" onclick="closeModal()">取消</button>
          <button class="btn btn-primary" onclick="saveProduct()">保存</button>`,
         () => editingProduct = null
       );
@@ -727,6 +729,47 @@
         appData.favorites = appData.favorites.filter(x => x !== id);
         saveData();
         addLog('delete', '删除商品', `${p?.name || id}`);
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
+    function deletePurchase(id) {
+      confirm('确定删除该采购单？删除后库存将相应调整。', () => {
+        const p = appData.purchases.find(x => x.id === id);
+        if (p) {
+          // 恢复库存
+          (p.items || []).forEach(item => {
+            if (appData.inventory[item.productId] !== undefined) {
+              appData.inventory[item.productId] -= (item.quantity - (item.returned || 0));
+            }
+          });
+        }
+        appData.purchases = appData.purchases.filter(x => x.id !== id);
+        saveData();
+        addLog('delete', '删除采购单', id);
+        closeModal();
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
+    function deleteSale(id) {
+      confirm('确定删除该销售单？相关收款记录不会被删除。', () => {
+        appData.sales = appData.sales.filter(x => x.id !== id);
+        saveData();
+        addLog('delete', '删除销售单', id);
+        closeModal();
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
+    function deletePayment(id) {
+      confirm('确定删除该收款记录？', () => {
+        appData.payments = appData.payments.filter(x => x.id !== id);
+        saveData();
+        addLog('delete', '删除收款记录', id);
         renderPage();
         showToast('已删除');
       });
@@ -1105,7 +1148,8 @@
           <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span></div>
           ${p.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${p.remark}</span></div>` : ''}
         </div>`,
-        `<button class="btn btn-outline" onclick="closeModal()">关闭</button>
+        `<button class="btn btn-danger" onclick="deletePurchase(\''+p.id+'\')">删除</button>
+         <button class="btn btn-outline" onclick="closeModal()">关闭</button>
          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
          ${p.status!=='returned'?'<button class="btn btn-warning" onclick="returnPurchase(\''+p.id+'\')">退货</button>':''}`,
         () => {}
@@ -1347,7 +1391,8 @@
             </div>
           </div>
         </div>`,
-        `<button class="btn btn-outline" onclick="closeModal()">关闭</button>
+        `<button class="btn btn-danger" onclick="deleteSale('${s.id}')">删除</button>
+         <button class="btn btn-outline" onclick="closeModal()">关闭</button>
          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
          ${paid < total ? `<button class="btn btn-success" onclick="quickReceive('${s.id}')">收款</button>` : ''}
          <button class="btn btn-warning" onclick="returnSale('${s.id}')">退货</button>`,
@@ -1559,11 +1604,12 @@
             const methodNames = { cash:'现金', transfer:'转账', wechat:'微信', alipay:'支付宝' };
             return `<div class="list-item">
               <div class="avatar" style="background:linear-gradient(135deg,#16a085,#1abc9c)">💳</div>
-              <div class="info">
+              <div class="info" onclick="deletePayment('${p.id}')" style="flex:1">
                 <div class="name">${customer?.name||'未知'}</div>
                 <div class="desc">${p.id} · ${formatDate(p.date)} · ${methodNames[p.method]||p.method}</div>
               </div>
-              <div style="font-weight:600;color:var(--success)">+${formatMoney(p.amount)}</div>
+              <div style="font-weight:600;color:var(--success)">${formatMoney(p.amount)}</div>
+              <button onclick="deletePayment('${p.id}')" style="background:none;border:none;color:var(--danger);font-size:18px;padding:4px 8px;margin-left:4px">✕</button>
             </div>`;
           }).join('') : '<div class="empty-state"><p>暂无收款记录</p></div>'}
         </div>

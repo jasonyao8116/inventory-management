@@ -221,6 +221,50 @@
 
     function formatMoney(n) { return '¥' + (Number(n)||0).toFixed(2); }
     function formatDate(d) { return d ? new Date(d).toLocaleDateString('zh-CN') : ''; }
+
+    // 计算移动平均成本：遍历所有采购记录，按时间顺序加权平均
+    function getAvgCost(productId) {
+      const batches = [];
+      appData.purchases.forEach(p => {
+        (p.items || []).forEach(item => {
+          if (item.productId === productId && item.quantity > 0) {
+            batches.push({ date: p.date, qty: item.quantity, price: item.price || 0 });
+          }
+        });
+      });
+      if (!batches.length) return 0;
+      batches.sort((a, b) => a.date.localeCompare(b.date));
+      let totalQty = 0, totalCost = 0;
+      batches.forEach(b => { totalQty += b.qty; totalCost += b.qty * b.price; });
+      return totalQty > 0 ? totalCost / totalQty : 0;
+    }
+
+    // 获取最近一次采购单价
+    function getLastPurchasePrice(productId) {
+      let latest = null;
+      appData.purchases.forEach(p => {
+        (p.items || []).forEach(item => {
+          if (item.productId === productId && item.quantity > 0) {
+            if (!latest || p.date > latest.date) latest = { date: p.date, price: item.price || 0, purchaseId: p.id };
+          }
+        });
+      });
+      return latest;
+    }
+
+    // 获取最近N次采购记录
+    function getRecentPurchases(productId, n = 3) {
+      const records = [];
+      appData.purchases.forEach(p => {
+        (p.items || []).forEach(item => {
+          if (item.productId === productId && item.quantity > 0) {
+            records.push({ date: p.date, price: item.price || 0, qty: item.quantity, purchaseId: p.id });
+          }
+        });
+      });
+      records.sort((a, b) => b.date.localeCompare(a.date));
+      return records.slice(0, n);
+    }
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg; t.classList.add('show');
@@ -442,13 +486,13 @@
         </div>
         <div style="text-align:right">
           <div style="font-weight:600">${formatMoney(p.price)}</div>
-          <div style="font-size:11px;color:var(--gray)">成本: ${formatMoney(p.cost)}</div>
+          ${(() => { const lp = getLastPurchasePrice(p.id); return lp ? `<div style="font-size:11px;color:var(--gray)">进价: ${formatMoney(lp.price)}</div>` : '<div style="font-size:11px;color:var(--gray)">暂无采购</div>'; })()}
         </div>
       </div>`;
     }
 
     function newProduct() {
-      editingProduct = { id: genId('SP'), name:'', brand:'', category:'', spec:'', unit:'件', cost:0, price:0, minStock:10, remark:'' };
+      editingProduct = { id: genId('SP'), name:'', brand:'', category:'', spec:'', unit:'件', price:0, minStock:10, remark:'' };
       showProductForm();
     }
 
@@ -476,12 +520,21 @@
           <div class="form-group"><label class="form-label">规格</label><input class="form-input" id="pf_spec" value="${p.spec||''}"></div>
           <div class="form-group"><label class="form-label">单位</label><input class="form-input" id="pf_unit" value="${p.unit||'件'}"></div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">成本价</label><input class="form-input" type="number" step="0.01" id="pf_cost" value="${p.cost}"></div>
-          <div class="form-group"><label class="form-label">默认售价</label><input class="form-input" type="number" step="0.01" id="pf_price" value="${p.price}"></div>
-        </div>
+        <div class="form-group"><label class="form-label">默认售价</label><input class="form-input" type="number" step="0.01" id="pf_price" value="${p.price}"></div>
         <div class="form-group"><label class="form-label">安全库存</label><input class="form-input" type="number" id="pf_minStock" value="${p.minStock||10}"></div>
-        <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="pf_remark">${p.remark||''}</textarea></div>`,
+        ${p.id && !p.id.includes('NEW') ? (() => {
+          const avgCost = getAvgCost(p.id);
+          const lastP = getLastPurchasePrice(p.id);
+          const recent = getRecentPurchases(p.id, 5);
+          if (!recent.length) return '<div class="section-title">进货成本</div><p style="color:var(--gray);font-size:12px">暂无采购记录</p>';
+          return '<div class="section-title">进货成本</div>' +
+            '<div class="detail-row"><span class="detail-label">移动平均成本</span><span class="detail-value" style="color:var(--primary);font-weight:600">' + formatMoney(avgCost) + '</span></div>' +
+            '<div class="detail-row"><span class="detail-label">最近一次进价</span><span class="detail-value">' + formatMoney(lastP?.price || 0) + ' <span style="font-size:11px;color:var(--gray)">(' + formatDate(lastP?.date) + ')</span></span></div>' +
+            '<div style="margin-top:8px"><div style="font-size:12px;color:var(--gray);margin-bottom:6px">近期采购记录</div>' +
+            recent.map(r => '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>' + formatDate(r.date) + '</span><span>' + r.qty + (appData.products.find(x=>x.id===p.id)?.unit||'') + ' × ' + formatMoney(r.price) + '</span></div>').join('') +
+            '</div>';
+        })() : ''}
+        <div class="form-group" style="margin-top:12px"><label class="form-label">备注</label><textarea class="form-textarea" id="pf_remark">${p.remark||''}</textarea></div>`,
         `<button class="btn btn-outline" onclick="closeModal()">取消</button>
          <button class="btn btn-primary" onclick="saveProduct()">保存</button>`,
         () => editingProduct = null
@@ -495,7 +548,6 @@
       p.category = document.getElementById('pf_category').value.trim();
       p.spec = document.getElementById('pf_spec').value.trim();
       p.unit = document.getElementById('pf_unit').value.trim() || '件';
-      p.cost = parseFloat(document.getElementById('pf_cost').value) || 0;
       p.price = parseFloat(document.getElementById('pf_price').value) || 0;
       p.minStock = parseInt(document.getElementById('pf_minStock').value) || 0;
       p.remark = document.getElementById('pf_remark').value.trim();
@@ -864,7 +916,8 @@
     }
 
     function calcPurchaseTotal(p) {
-      return (p.items || []).reduce((sum, i) => sum + (i.price * (i.quantity - (i.returned || 0))), 0);
+      const itemsTotal = (p.items || []).reduce((sum, i) => sum + (i.price * (i.quantity - (i.returned || 0))), 0);
+      return itemsTotal + (p.transportCost || 0);
     }
 
     function newPurchase() {
@@ -902,6 +955,8 @@
               </tbody>
             </table>
           </div>
+          <div class="detail-row"><span class="detail-label">商品小计</span><span class="detail-value">${formatMoney((p.items||[]).reduce((s,i)=>s+i.price*(i.quantity-(i.returned||0)),0))}</span></div>
+          ${p.transportCost ? `<div class="detail-row"><span class="detail-label">运输费用</span><span class="detail-value">${formatMoney(p.transportCost)}</span></div>` : ''}
           <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span></div>
           ${p.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${p.remark}</span></div>` : ''}
         </div>`,
@@ -930,16 +985,21 @@
         <div class="section-title">商品明细</div>
         <div id="purchaseItems">${itemsHtml}</div>
         <button class="btn btn-outline btn-block" onclick="addPurchaseItem()">+ 添加商品</button>
-        <div class="detail-row" style="margin-top:16px">
-          <span class="detail-label">合计</span>
-          <span class="detail-value" id="purchaseTotal" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span>
+        <div class="form-row" style="margin-top:16px">
+          <div class="form-group"><label class="form-label">运输费用</label><input class="form-input" type="number" step="0.01" id="pp_transport" value="${p.transportCost||0}" oninput="updatePurchaseTotal()"></div>
+          <div class="form-group"><label class="form-label">合计（含运费）</label><div id="purchaseTotal" style="padding:12px;font-size:18px;color:var(--primary);font-weight:600;background:var(--light-gray);border-radius:8px">${formatMoney(calcPurchaseTotal(p))}</div></div>
         </div>
-        <div class="form-group" style="margin-top:16px"><label class="form-label">备注</label>
+        <div class="form-group"><label class="form-label">备注</label>
           <textarea class="form-textarea" id="pp_remark">${p.remark||''}</textarea></div>`,
         `<button class="btn btn-outline" onclick="closeModal()">取消</button>
          <button class="btn btn-primary" onclick="savePurchase()">保存</button>`,
         () => editingPurchase = null
       );
+    }
+
+    function updatePurchaseTotal() {
+      editingPurchase.transportCost = parseFloat(document.getElementById('pp_transport').value) || 0;
+      document.getElementById('purchaseTotal').textContent = formatMoney(calcPurchaseTotal(editingPurchase));
     }
 
     function renderPurchaseItemRow(item, idx) {
@@ -963,21 +1023,22 @@
 
     function changePurchaseItem(idx, field, val) {
       if (field === 'product') {
-        const prod = appData.products.find(p => p.id === val);
         editingPurchase.items[idx].productId = val;
-        if (prod) editingPurchase.items[idx].price = prod.cost || 0;
+        // 使用最近一次采购价作为默认值
+        const lastP = getLastPurchasePrice(val);
+        editingPurchase.items[idx].price = lastP ? lastP.price : 0;
       } else if (field === 'qty') {
         editingPurchase.items[idx].quantity = parseInt(val) || 0;
       } else if (field === 'price') {
         editingPurchase.items[idx].price = parseFloat(val) || 0;
       }
-      document.getElementById('purchaseTotal').textContent = formatMoney(calcPurchaseTotal(editingPurchase));
+      updatePurchaseTotal();
     }
 
     function removePurchaseItem(idx) {
       editingPurchase.items.splice(idx, 1);
       document.getElementById('purchaseItems').innerHTML = editingPurchase.items.map((item, i) => renderPurchaseItemRow(item, i)).join('');
-      document.getElementById('purchaseTotal').textContent = formatMoney(calcPurchaseTotal(editingPurchase));
+      updatePurchaseTotal();
     }
 
     function savePurchase() {
@@ -985,6 +1046,7 @@
       p.supplierId = document.getElementById('pp_supplier').value;
       p.date = document.getElementById('pp_date').value;
       p.remark = document.getElementById('pp_remark').value.trim();
+      p.transportCost = parseFloat(document.getElementById('pp_transport').value) || 0;
       p.items = p.items.filter(i => i.productId && i.quantity > 0);
       if (!p.supplierId) { showToast('请选择供应商'); return; }
       if (!p.items.length) { showToast('请添加商品'); return; }
@@ -1667,9 +1729,8 @@
       let totalSale = 0, totalCost = 0;
       appData.sales.forEach(s => {
         (s.items||[]).forEach(item => {
-          const prod = appData.products.find(p => p.id === item.productId);
           totalSale += item.price * item.quantity;
-          totalCost += (prod?.cost || 0) * item.quantity;
+          totalCost += getAvgCost(item.productId) * item.quantity;
         });
       });
       const profit = totalSale - totalCost;
@@ -1721,9 +1782,8 @@
         const m = s.date.slice(0,7);
         if (!months[m]) months[m] = { sale: 0, cost: 0 };
         (s.items||[]).forEach(item => {
-          const prod = appData.products.find(p => p.id === item.productId);
           months[m].sale += item.price * item.quantity;
-          months[m].cost += (prod?.cost || 0) * item.quantity;
+          months[m].cost += getAvgCost(item.productId) * item.quantity;
         });
       });
       appData.purchases.forEach(p => {
@@ -1991,9 +2051,9 @@
     // 添加一些示例数据以便测试
     if (appData.products.length === 0) {
       appData.products = [
-        { id: 'SP-20240101-001', name: '矿泉水', brand: '农夫山泉', category: '饮料', spec: '550ml*24', unit: '箱', cost: 12, price: 18, minStock: 50, remark: '' },
-        { id: 'SP-20240101-002', name: '方便面', brand: '康师傅', category: '食品', spec: '红烧牛肉面', unit: '箱', cost: 28, price: 35, minStock: 30, remark: '' },
-        { id: 'SP-20240101-003', name: '纸巾', brand: '清风', category: '日用品', spec: '抽纸', unit: '提', cost: 8, price: 12, minStock: 20, remark: '' }
+        { id: 'SP-20240101-001', name: '矿泉水', brand: '农夫山泉', category: '饮料', spec: '550ml*24', unit: '箱', price: 18, minStock: 50, remark: '' },
+        { id: 'SP-20240101-002', name: '方便面', brand: '康师傅', category: '食品', spec: '红烧牛肉面', unit: '箱', price: 35, minStock: 30, remark: '' },
+        { id: 'SP-20240101-003', name: '纸巾', brand: '清风', category: '日用品', spec: '抽纸', unit: '提', price: 12, minStock: 20, remark: '' }
       ];
       appData.customers = [
         { id: 'KH-20240101-001', name: '张三商店', address: 'XX路123号', settleType: 'cash', creditDays: 30, remark: '', contacts: [{name:'张三',phone:'13800138001',wechat:'zhangsan',title:'老板'}], prices: {} },

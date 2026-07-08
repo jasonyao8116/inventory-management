@@ -1,0 +1,17 @@
+{
+  "products": [],
+  "customers": [],
+  "suppliers": [],
+  "customerPrices": {},
+  "purchases": [],
+  "sales": [],
+  "payments": [],
+  "inventory": {},
+  "inventoryLogs": [],
+  "favorites": [],
+  "operationLogs": [],
+  "githubToken": "",
+  "settings": {
+    "lastSync": null
+  }
+}

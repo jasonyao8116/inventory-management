@@ -231,34 +231,38 @@
       const token = appData.githubToken;
       if (!token) { showToast('请先配置GitHub Token'); return; }
       showToast('正在上传到云端...');
-      try {
-        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
-        const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
-        // 先获取已有文件的sha（用于更新）
-        let sha = null;
+      const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
+      const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
+      const content = encodeBase64(JSON.stringify(appData, null, 2));
+      // 最多尝试2次（处理SHA冲突）
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const existing = await fetchGitHubFile();
-          sha = existing.sha;
-        } catch(e) {}
-        const body = {
-          message: `同步数据 ${new Date().toLocaleString('zh-CN')}`,
-          content: encodeBase64(JSON.stringify(appData, null, 2))
-        };
-        if (sha) body.sha = sha;
-        const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
-        if (res.ok) {
-          appData.settings.lastSync = new Date().toISOString();
-          saveData();
-          showToast('✅ 上传成功！');
-          renderPage();
-        } else {
-          const err = await res.text();
-          showToast('❌ 上传失败: ' + res.status);
-          console.error('Upload error:', err);
+          let sha = null;
+          try {
+            const res = await fetch(url, { headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' } });
+            if (res.ok) { const d = await res.json(); sha = d.sha; }
+          } catch(e) {}
+          const body = { message: `同步数据 ${new Date().toLocaleString('zh-CN')}`, content };
+          if (sha) body.sha = sha;
+          const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+          if (res.ok) {
+            appData.settings.lastSync = new Date().toISOString();
+            saveData();
+            showToast('✅ 上传成功！');
+            renderPage();
+            return;
+          } else if (res.status === 409 && attempt === 0) {
+            console.log('SHA冲突，重试中...');
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          } else {
+            showToast('❌ 上传失败: ' + res.status);
+            return;
+          }
+        } catch(e) {
+          showToast('❌ 上传失败: ' + e.message);
+          return;
         }
-      } catch(e) {
-        showToast('❌ 上传失败: ' + e.message);
-        console.error('Upload error:', e);
       }
     }
 

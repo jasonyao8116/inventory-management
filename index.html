@@ -194,7 +194,10 @@
     function loadData() {
       try {
         const saved = localStorage.getItem(DB_KEY);
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          const data = JSON.parse(saved);
+          return { ...JSON.parse(JSON.stringify(DEFAULT_DATA)), ...data };
+        }
       } catch(e) {}
       return JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
@@ -532,6 +535,12 @@
             </button>
             <button class="quick-btn" onclick="switchPage('purchase');setTimeout(newPurchase,100)">
               <span class="icon">📋</span>新建采购单
+            </button>
+            <button class="quick-btn" onclick="switchPage('customers')">
+              <span class="icon">👥</span>客户管理
+            </button>
+            <button class="quick-btn" onclick="switchPage('expenses')">
+              <span class="icon">💸</span>支出
             </button>
             <button class="quick-btn" onclick="switchPage('inventory');setTimeout(showLowStock,100)">
               <span class="icon">⚠️</span>库存预警
@@ -2268,6 +2277,7 @@
     const EXPENSE_CATEGORIES = ['房租', '水电', '人工', '运输', '办公', '税费', '维修', '营销', '餐饮', '其他'];
 
     function renderExpenses() {
+      if (!appData.expenses) appData.expenses = [];
       const totalExpense = appData.expenses.reduce((s, e) => s + e.amount, 0);
       const month = new Date().toISOString().slice(0, 7);
       const monthTotal = appData.expenses.filter(e => e.date && e.date.startsWith(month)).reduce((s, e) => s + e.amount, 0);

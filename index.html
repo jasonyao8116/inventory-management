@@ -185,6 +185,7 @@
     const DEFAULT_DATA = {
       products: [], customers: [], suppliers: [],
       customerPrices: {}, purchases: [], sales: [], payments: [],
+      expenses: [],
       inventory: {}, inventoryLogs: [], favorites: [],
       operationLogs: [], githubToken: '', settings: { lastSync: null }
     };
@@ -200,6 +201,7 @@
 
     function saveData() {
       localStorage.setItem(DB_KEY, JSON.stringify(appData));
+      autoSync();
     }
 
     // ============ GitHub 云端同步 ============
@@ -227,10 +229,10 @@
       return { data, sha: json.sha };
     }
 
-    async function uploadToCloud() {
+    async function uploadToCloud(silent = false) {
       const token = appData.githubToken;
-      if (!token) { showToast('请先配置GitHub Token'); return; }
-      showToast('正在上传到云端...');
+      if (!token) { if (!silent) showToast('请先配置GitHub Token'); return; }
+      if (!silent) showToast('正在上传到云端...');
       const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`;
       const authHeaders = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
       // 上传前剔除敏感信息，避免触发 GitHub secret scanning 导致 409
@@ -268,7 +270,7 @@
           if (putRes.ok) {
             appData.settings.lastSync = new Date().toISOString();
             saveData();
-            showToast('✅ 上传成功！');
+            if (!silent) showToast('✅ 上传成功！');
             renderPage();
             return;
           }
@@ -284,11 +286,11 @@
           let errMsg = '';
           try { errMsg = (await putRes.text()).slice(0, 100); } catch(e) {}
           console.error(`PUT失败: status=${putRes.status}, GET状态=${getFileStatus}, SHA=${sha||'null'}`, errMsg);
-          showToast('❌ 上传失败: ' + putRes.status);
+          if (!silent) showToast('❌ 上传失败: ' + putRes.status);
           return;
         } catch(e) {
           console.error('上传异常:', e);
-          showToast('❌ 上传失败: ' + e.message);
+          if (!silent) showToast('❌ 上传失败: ' + e.message);
           return;
         }
       }
@@ -437,6 +439,7 @@
       { id: 'customers', name: '客户管理', icon: '👥' },
       { id: 'suppliers', name: '供应商', icon: '🏪' },
       { id: 'payments', name: '回款', icon: '💳' },
+      { id: 'expenses', name: '支出', icon: '💸' },
       { id: 'reports', name: '报表', icon: '📈' },
       { id: 'statement', name: '对账单', icon: '📋' },
       { id: 'settings', name: '设置', icon: '⚙️' },
@@ -471,6 +474,7 @@
         customers: renderCustomers,
         suppliers: renderSuppliers,
         payments: renderPayments,
+        expenses: renderExpenses,
         reports: renderReports,
         statement: renderStatement,
         settings: renderSettings,
@@ -574,6 +578,16 @@
 
     // ============ 商品管理 ============
     let productFilter = { search: '', brand: '', category: '' };
+    let priceFilter = { brand: '', category: '' };
+    let _autoSyncTimer = null;
+    function autoSync() {
+      clearTimeout(_autoSyncTimer);
+      _autoSyncTimer = setTimeout(() => {
+        if (appData.githubToken && appData.products.length > 0) {
+          uploadToCloud(true).catch(() => {});
+        }
+      }, 3000);
+    }
     let editingProduct = null;
 
     function renderProducts() {
@@ -913,12 +927,31 @@
     }
 
     function renderPriceInputs() {
-      return appData.products.map(p => `
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="font-size:12px">${p.name} (默认: ${formatMoney(p.price)})</label>
-          <input class="form-input" style="padding:8px" type="number" step="0.01" 
-            id="price_${p.id}" value="${editingCustomer.prices?.[p.id] || ''}" placeholder="留空使用默认售价">
-        </div>`).join('');
+      const brands = [...new Set(appData.products.map(p => p.brand).filter(Boolean))];
+      const categories = [...new Set(appData.products.map(p => p.category).filter(Boolean))];
+      const filtered = appData.products.filter(p => {
+        if (priceFilter.brand && p.brand !== priceFilter.brand) return false;
+        if (priceFilter.category && p.category !== priceFilter.category) return false;
+        return true;
+      });
+      if (!filtered.length) return '<p style="color:var(--gray);font-size:13px;padding:8px">无匹配商品</p>';
+      return `
+        <div class="filter-bar" style="margin-bottom:8px">
+          <span class="filter-chip ${!priceFilter.brand?'active':''}" onclick="priceFilter.brand='';document.getElementById('pricesContainer').innerHTML=renderPriceInputs()">全部品牌</span>
+          ${brands.map(b => `<span class="filter-chip ${priceFilter.brand===b?'active':''}" onclick="priceFilter.brand='${b}';document.getElementById('pricesContainer').innerHTML=renderPriceInputs()">${b}</span>`).join('')}
+        </div>
+        <div class="filter-bar" style="margin-bottom:8px">
+          <span class="filter-chip ${!priceFilter.category?'active':''}" onclick="priceFilter.category='';document.getElementById('pricesContainer').innerHTML=renderPriceInputs()">全部分类</span>
+          ${categories.map(c => `<span class="filter-chip ${priceFilter.category===c?'active':''}" onclick="priceFilter.category='${c}';document.getElementById('pricesContainer').innerHTML=renderPriceInputs()">${c}</span>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--gray);margin-bottom:8px">共 ${filtered.length} 个商品</div>
+        ${filtered.map(p => `
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:12px">${p.name} ${p.brand?'('+p.brand+')':''} ${p.category?'·'+p.category:''} (默认: ${formatMoney(p.price)})</label>
+            <input class="form-input" style="padding:8px" type="number" step="0.01" 
+              id="price_${p.id}" value="${editingCustomer.prices?.[p.id] || ''}" placeholder="留空使用默认售价">
+          </div>
+        `).join('')}`;
     }
 
     function saveCustomer() {
@@ -1854,6 +1887,7 @@
         { id: 'sale_rank', name: '销售排行' },
         { id: 'customer_owed', name: '客户欠款' },
         { id: 'profit', name: '利润统计' },
+        { id: 'expense_stat', name: '支出统计' },
         { id: 'purchase_stat', name: '采购统计' },
         { id: 'low_stock', name: '库存预警' },
         { id: 'monthly', name: '月度汇总' }
@@ -1870,6 +1904,7 @@
         case 'sale_rank': return renderSaleRankReport();
         case 'customer_owed': return renderCustomerOwedReport();
         case 'profit': return renderProfitReport();
+        case 'expense_stat': return renderExpenseReport();
         case 'purchase_stat': return renderPurchaseStatReport();
         case 'low_stock': return renderLowStockReport();
         case 'monthly': return renderMonthlyReport();
@@ -1934,6 +1969,33 @@
       </div>`;
     }
 
+    function renderExpenseReport() {
+      const totalExpense = appData.expenses.reduce((s, e) => s + e.amount, 0);
+      const byCat = {};
+      appData.expenses.forEach(e => {
+        if (!byCat[e.category]) byCat[e.category] = 0;
+        byCat[e.category] += e.amount;
+      });
+      const months = {};
+      appData.expenses.forEach(e => {
+        if (!e.date) return;
+        const m = e.date.slice(0, 7);
+        if (!months[m]) months[m] = 0;
+        months[m] += e.amount;
+      });
+      const sorted = Object.entries(months).sort((a, b) => b[0].localeCompare(a[0]));
+      return `<div class="report-card">
+        <h3>支出统计</h3>
+        <div class="detail-row"><span class="detail-label">总支出</span><span class="detail-value" style="color:var(--danger);font-size:20px;font-weight:600">¥${totalExpense.toLocaleString('zh-CN',{minimumFractionDigits:2})}</span></div>
+        ${Object.keys(byCat).length ? '<h4 style="margin-top:16px">按类别</h4><table class="table"><thead><tr><th>类别</th><th>金额</th><th>占比</th></tr></thead><tbody>' +
+          Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,a]) => `<tr><td>${c}</td><td>¥${a.toLocaleString('zh-CN',{minimumFractionDigits:2})}</td><td>${totalExpense>0?(a/totalExpense*100).toFixed(1):0}%</td></tr>`).join('') +
+          '</tbody></table>' : ''}
+        ${sorted.length ? '<h4 style="margin-top:16px">按月份</h4><table class="table"><thead><tr><th>月份</th><th>支出</th></tr></thead><tbody>' +
+          sorted.map(([m,a]) => `<tr><td>${m}</td><td>¥${a.toLocaleString('zh-CN',{minimumFractionDigits:2})}</td></tr>`).join('') +
+          '</tbody></table>' : ''}
+      </div>`;
+    }
+
     function renderPurchaseStatReport() {
       let total = 0;
       appData.purchases.forEach(p => total += calcPurchaseTotal(p));
@@ -1979,18 +2041,27 @@
       });
       appData.purchases.forEach(p => {
         const m = p.date.slice(0,7);
-        if (!months[m]) months[m] = { sale: 0, cost: 0, purchase: 0 };
+        if (!months[m]) months[m] = { sale: 0, cost: 0, purchase: 0, expense: 0 };
         if (!months[m].purchase) months[m].purchase = 0;
+        if (!months[m].expense) months[m].expense = 0;
         months[m].purchase += calcPurchaseTotal(p);
+      });
+      appData.expenses.forEach(e => {
+        if (!e.date) return;
+        const m = e.date.slice(0, 7);
+        if (!months[m]) months[m] = { sale: 0, cost: 0, purchase: 0, expense: 0 };
+        if (!months[m].expense) months[m].expense = 0;
+        months[m].expense += e.amount;
       });
       const sorted = Object.entries(months).sort((a, b) => b[0].localeCompare(a[0]));
       if (!sorted.length) return '<div class="report-card"><h3>月度汇总</h3><p>暂无数据</p></div>';
       return `<div class="report-card">
         <h3>月度汇总</h3>
-        <table class="table"><thead><tr><th>月份</th><th>销售额</th><th>采购额</th><th>毛利</th></tr></thead>
+        <table class="table"><thead><tr><th>月份</th><th>销售额</th><th>采购额</th><th>支出</th><th>毛利</th></tr></thead>
         <tbody>${sorted.map(([m, d]) => `<tr>
           <td>${m}</td><td>${formatMoney(d.sale)}</td><td>${formatMoney(d.purchase||0)}</td>
-          <td style="color:var(--success)">${formatMoney(d.sale - d.cost)}</td>
+          <td style="color:var(--danger)">${formatMoney(d.expense||0)}</td>
+          <td style="color:var(--success)">${formatMoney(d.sale - d.cost - (d.expense||0))}</td>
         </tr>`).join('')}</tbody></table></div>`;
     }
 
@@ -2192,6 +2263,116 @@
     }
 
     // ============ 更多页面 ============
+    // ============ 支出管理 ============
+    let expenseFilter = { category: '' };
+    const EXPENSE_CATEGORIES = ['房租', '水电', '人工', '运输', '办公', '税费', '维修', '营销', '餐饮', '其他'];
+
+    function renderExpenses() {
+      const totalExpense = appData.expenses.reduce((s, e) => s + e.amount, 0);
+      const month = new Date().toISOString().slice(0, 7);
+      const monthTotal = appData.expenses.filter(e => e.date && e.date.startsWith(month)).reduce((s, e) => s + e.amount, 0);
+
+      const byCat = {};
+      appData.expenses.forEach(e => {
+        if (!byCat[e.category]) byCat[e.category] = 0;
+        byCat[e.category] += e.amount;
+      });
+
+      const list = appData.expenses.filter(e => {
+        if (expenseFilter.category && e.category !== expenseFilter.category) return false;
+        return true;
+      }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="card">
+          <div class="card-title">支出概览</div>
+          <div class="detail-row"><span class="detail-label">总支出</span><span class="detail-value" style="color:var(--danger);font-size:20px;font-weight:600">¥${totalExpense.toLocaleString('zh-CN',{minimumFractionDigits:2})}</span></div>
+          <div class="detail-row"><span class="detail-label">本月支出</span><span class="detail-value" style="color:var(--primary);font-weight:600">¥${monthTotal.toLocaleString('zh-CN',{minimumFractionDigits:2})}</span></div>
+          ${Object.keys(byCat).length ? '<div style="margin-top:12px"><table class="table"><thead><tr><th>类别</th><th>金额</th></tr></thead><tbody>' +
+            Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,a]) => `<tr><td>${c}</td><td>¥${a.toLocaleString('zh-CN',{minimumFractionDigits:2})}</td></tr>`).join('') +
+            '</tbody></table></div>' : ''}
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${!expenseFilter.category?'active':''}" onclick="expenseFilter.category='';renderExpenses()">全部</span>
+          ${EXPENSE_CATEGORIES.map(c => `<span class="filter-chip ${expenseFilter.category===c?'active':''}" onclick="expenseFilter.category='${c}';renderExpenses()">${c}</span>`).join('')}
+        </div>
+        <div class="card">
+          <div class="card-title">支出记录</div>
+          ${list.length ? list.map(e => `
+            <div class="list-item">
+              <div class="avatar" style="background:linear-gradient(135deg,#e74c3c,#c0392b)"></div>
+              <div class="info">
+                <div class="name">${e.title||e.category}</div>
+                <div class="desc">${e.date||''} · ${e.category}</div>
+              </div>
+              <div style="font-weight:600;color:var(--danger)">-¥${e.amount.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div>
+              <button onclick="deleteExpense('${e.id}')" style="background:none;border:none;color:var(--danger);font-size:18px;padding:4px 8px">✕</button>
+            </div>
+          `).join('') : '<div class="empty-state"><p>暂无支出记录</p></div>'}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newExpense()" style="position:fixed;bottom:70px;left:12px;right:12px;">+ 记录支出</button>`;
+    }
+
+    function newExpense() {
+      const e = { id: 'EXP-' + Date.now(), date: new Date().toISOString().slice(0,10), category: '其他', title: '', amount: 0, remark: '' };
+      showExpenseForm(e);
+    }
+
+    function showExpenseForm(e) {
+      openModal('记录支出', `
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">类别 <span class="required">*</span></label>
+            <select class="form-select" id="ef_category">
+              ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${e.category===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">日期</label>
+            <input class="form-input" type="date" id="ef_date" value="${e.date}">
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">标题</label>
+          <input class="form-input" id="ef_title" value="${e.title||''}" placeholder="如：7月房租">
+        </div>
+        <div class="form-group"><label class="form-label">金额 <span class="required">*</span></label>
+          <input class="form-input" type="number" step="0.01" id="ef_amount" value="${e.amount||''}" placeholder="0.00">
+        </div>
+        <div class="form-group"><label class="form-label">备注</label>
+          <textarea class="form-textarea" id="ef_remark">${e.remark||''}</textarea>
+        </div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+         <button class="btn btn-primary" onclick="saveExpense()">保存</button>`,
+        () => {}
+      );
+    }
+
+    function saveExpense() {
+      const e = {
+        id: 'EXP-' + Date.now(),
+        date: document.getElementById('ef_date').value,
+        category: document.getElementById('ef_category').value,
+        title: document.getElementById('ef_title').value.trim(),
+        amount: parseFloat(document.getElementById('ef_amount').value) || 0,
+        remark: document.getElementById('ef_remark').value.trim()
+      };
+      if (!e.amount) { showToast('请填写金额'); return; }
+      appData.expenses.push(e);
+      saveData();
+      addLog('add', '新增支出', `${e.category}: ${formatMoney(e.amount)}`);
+      closeModal();
+      renderPage();
+      showToast('保存成功');
+    }
+
+    function deleteExpense(id) {
+      confirm('确定删除该支出记录？', () => {
+        appData.expenses = appData.expenses.filter(x => x.id !== id);
+        saveData();
+        addLog('delete', '删除支出', id);
+        renderPage();
+        showToast('已删除');
+      });
+    }
+
     function renderMore() {
       document.getElementById('mainContent').innerHTML = `
         <div class="card">

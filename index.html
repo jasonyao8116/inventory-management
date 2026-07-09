@@ -170,7 +170,10 @@
     .product-picker-item .ppi-stock { font-size: 11px; color: var(--gray); margin-left: 8px; white-space: nowrap; }
     .product-picker-item .ppi-stock.low { color: var(--danger); }
     .product-picker-empty { text-align: center; padding: 30px; color: var(--gray); font-size: 13px; }
-  </style>
+    .product-picker-empty { text-align: center; padding: 20px; color: var(--gray); font-size: 13px; }
+    .item-cat-bar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .item-cat-bar .cat-chip { padding: 4px 10px; background: var(--light-gray); border: 1px solid #ddd; border-radius: 14px; font-size: 11px; cursor: pointer; color: var(--text); transition: all 0.2s; }
+    .item-cat-bar .cat-chip.active { background: var(--primary); color: white; border-color: var(--primary); }  </style>
 </head>
 <body>
   <div class="app">
@@ -1257,6 +1260,7 @@
           </div>
         </div>
         <div class="section-title">商品明细</div>
+        <div id="purchaseCatBar">${buildCategoryChipsHTML('purchase')}</div>
         <div id="purchaseItems">${itemsHtml}</div>
         <button class="btn btn-outline btn-block" onclick="addPurchaseItem()">+ 添加商品</button>
         <div class="form-row" style="margin-top:16px">
@@ -1276,11 +1280,30 @@
       document.getElementById('purchaseTotal').textContent = formatMoney(calcPurchaseTotal(editingPurchase));
     }
 
-    function buildProductOptions(selectedId) {
-      const categories = [...new Set(appData.products.map(p => p.category || '未分类'))].sort();
+    let _purchaseCatFilter = '';
+    let _saleCatFilter = '';
+
+    function buildCategoryChipsHTML(type) {
+      const cats = [...new Set(appData.products.map(p => p.category || '未分类'))].sort();
+      const current = type === 'purchase' ? _purchaseCatFilter : _saleCatFilter;
+      let html = '<div class="item-cat-bar">';
+      html += `<span class="cat-chip ${current === '' ? 'active' : ''}" onclick="filterByCategory('${type}','')">全部</span>`;
+      cats.forEach(c => {
+        html += `<span class="cat-chip ${current === c ? 'active' : ''}" onclick="filterByCategory('${type}','${c}')">${c}</span>`;
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function buildProductOptions(selectedId, category) {
+      let products = appData.products;
+      if (category) {
+        products = products.filter(p => (p.category || '未分类') === category);
+      }
+      const categories = [...new Set(products.map(p => p.category || '未分类'))].sort();
       let html = '<option value="">选择商品</option>';
       categories.forEach(cat => {
-        const prods = appData.products.filter(p => (p.category || '未分类') === cat);
+        const prods = products.filter(p => (p.category || '未分类') === cat);
         if (!prods.length) return;
         html += `<optgroup label="${cat}">`;
         prods.forEach(p => {
@@ -1291,9 +1314,25 @@
       return html;
     }
 
+    function filterByCategory(type, cat) {
+      if (type === 'purchase') {
+        _purchaseCatFilter = cat;
+        const el = document.getElementById('purchaseItems');
+        if (el) el.innerHTML = editingPurchase.items.map((item, i) => renderPurchaseItemRow(item, i)).join('');
+        const chipsEl = document.getElementById('purchaseCatBar');
+        if (chipsEl) chipsEl.innerHTML = buildCategoryChipsHTML('purchase');
+      } else {
+        _saleCatFilter = cat;
+        const el = document.getElementById('saleItems');
+        if (el) el.innerHTML = editingSale.items.map((item, i) => renderSaleItemRow(item, i)).join('');
+        const chipsEl = document.getElementById('saleCatBar');
+        if (chipsEl) chipsEl.innerHTML = buildCategoryChipsHTML('sale');
+      }
+    }
+
     function renderPurchaseItemRow(item, idx) {
       const prod = appData.products.find(p => p.id === item.productId);
-      const options = buildProductOptions(item.productId);
+      const options = buildProductOptions(item.productId, _purchaseCatFilter);
       return `<div class="linkage-row" id="pitem_${idx}">
         <select class="form-select" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis" onchange="changePurchaseItem(${idx},'product',this.value);this.parentElement.querySelector('.qty-input')?.focus()">
           ${options}
@@ -1516,6 +1555,7 @@
           </div>
         </div>
         <div class="section-title">商品明细</div>
+        <div id="saleCatBar">${buildCategoryChipsHTML('sale')}</div>
         <div id="saleItems">${itemsHtml}</div>
         <button class="btn btn-outline btn-block" onclick="addSaleItem()">+ 添加商品</button>
         <div class="detail-row" style="margin-top:16px">
@@ -1542,10 +1582,12 @@
     function renderSaleItemRow(item, idx) {
       const prod = appData.products.find(p => p.id === item.productId);
       const stock = appData.inventory[item.productId] || 0;
-      const categories = [...new Set(appData.products.map(p => p.category || '未分类'))].sort();
+      let products = appData.products;
+      if (_saleCatFilter) products = products.filter(p => (p.category || '未分类') === _saleCatFilter);
+      const categories = [...new Set(products.map(p => p.category || '未分类'))].sort();
       let options = '<option value="">选择商品</option>';
       categories.forEach(cat => {
-        const prods = appData.products.filter(p => (p.category || '未分类') === cat);
+        const prods = products.filter(p => (p.category || '未分类') === cat);
         if (!prods.length) return;
         options += `<optgroup label="${cat}">`;
         prods.forEach(p => {

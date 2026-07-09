@@ -633,7 +633,9 @@
     function autoSync() {
       clearTimeout(_autoSyncTimer);
       _autoSyncTimer = setTimeout(() => {
-        if (appData.githubToken && appData.products.length > 0) {
+        // 防止默认空数据覆盖云端真实数据：至少需要5个商品或有销售/采购记录才自动同步
+        const hasRealData = appData.sales.length > 0 || appData.purchases.length > 0 || appData.products.length >= 5;
+        if (appData.githubToken && hasRealData) {
           uploadToCloud(true).catch(() => {});
         }
       }, 3000);
@@ -1583,30 +1585,49 @@
       document.getElementById('saleTotal').textContent = formatMoney(calcSaleTotal(editingSale));
     }
 
-    // ========== 商品选择器 ==========
+    // ========== 商品选择器（内容替换模式） ==========
     let pickerState = { type: '', idx: 0, category: '', search: '' };
+    let _pickerModalBackup = null;
 
     function openProductPicker(type, idx) {
       pickerState = { type, idx, category: '', search: '' };
       const title = type === 'purchase' ? '选择采购商品' : '选择销售商品';
       const categories = [...new Set(appData.products.map(p => p.category).filter(Boolean))];
-      renderProductPickerModal(title, categories);
+      const modal = document.getElementById('modal');
+      if (modal.classList.contains('active')) {
+        _pickerModalBackup = {
+          title: document.getElementById('modalTitle').textContent,
+          body: document.getElementById('modalBody').innerHTML,
+          footer: document.getElementById('modalFooter').innerHTML,
+          onClose: modal.onCloseCallback
+        };
+        document.getElementById('modalTitle').textContent = title;
+        const catChips = `<span class="filter-chip active" onclick="pickerState.category='';refreshProductPicker()">全部</span>` +
+          categories.map(c => `<span class="filter-chip" onclick="pickerState.category='${c}';refreshProductPicker()">${c}</span>`).join('');
+        document.getElementById('modalBody').innerHTML = `
+          <div class="product-picker-search">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="pickerSearchInput" placeholder="搜索商品名称..." oninput="pickerState.search=this.value;refreshProductPicker()">
+          </div>
+          <div class="picker-filter-bar" id="pickerCatBar">${catChips}</div>
+          <div class="product-picker-list" id="pickerProductList"></div>`;
+        document.getElementById('modalFooter').innerHTML = `<button class="btn btn-outline btn-block" onclick="closeProductPicker()">返回</button>`;
+        modal.onCloseCallback = null;
+        refreshProductPicker();
+      }
     }
 
-    function renderProductPickerModal(title, categories) {
-      const catChips = `<span class="filter-chip ${!pickerState.category?'active':''}" onclick="pickerState.category='';refreshProductPicker()">全部</span>` +
-        categories.map(c => `<span class="filter-chip ${pickerState.category===c?'active':''}" onclick="pickerState.category='${c}';refreshProductPicker()">${c}</span>`).join('');
-
-      openModal(title, `
-        <div class="product-picker-search">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="pickerSearchInput" placeholder="搜索商品名称..." value="${pickerState.search}" oninput="pickerState.search=this.value;refreshProductPicker()">
-        </div>
-        <div class="picker-filter-bar" id="pickerCatBar">${catChips}</div>
-        <div class="product-picker-list" id="pickerProductList"></div>
-      `, `<button class="btn btn-outline btn-block" onclick="closeModal()">关闭</button>`, () => {});
-
-      refreshProductPicker();
+    function closeProductPicker() {
+      if (_pickerModalBackup) {
+        const modal = document.getElementById('modal');
+        document.getElementById('modalTitle').textContent = _pickerModalBackup.title;
+        document.getElementById('modalBody').innerHTML = _pickerModalBackup.body;
+        document.getElementById('modalFooter').innerHTML = _pickerModalBackup.footer;
+        modal.onCloseCallback = _pickerModalBackup.onClose;
+        _pickerModalBackup = null;
+      } else {
+        closeModal();
+      }
     }
 
     function refreshProductPicker() {
@@ -1658,14 +1679,14 @@
       const { type, idx } = pickerState;
       if (type === 'purchase') {
         changePurchaseItem(idx, 'product', productId);
-        closeModal(); // restores the purchase form modal
+        closeProductPicker(); // restores the purchase form modal content
         // Re-render items in the restored form
         const el = document.getElementById('purchaseItems');
         if (el) el.innerHTML = editingPurchase.items.map((item, i) => renderPurchaseItemRow(item, i)).join('');
         updatePurchaseTotal();
       } else {
         changeSaleItem(idx, 'product', productId);
-        closeModal(); // restores the sale form modal
+        closeProductPicker(); // restores the sale form modal content
         // Re-render items in the restored form
         const el = document.getElementById('saleItems');
         if (el) el.innerHTML = editingSale.items.map((item, i) => renderSaleItemRow(item, i)).join('');

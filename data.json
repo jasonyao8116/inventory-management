@@ -330,6 +330,25 @@
       "prices": {
         "SP-20260708-001": 580
       }
+    },
+    {
+      "id": "KH-20260710-001",
+      "name": "翡翠公园游泳池",
+      "address": "",
+      "settleType": "cash",
+      "creditDays": 30,
+      "remark": "",
+      "contacts": [
+        {
+          "name": "刘老板",
+          "title": "",
+          "phone": "",
+          "wechat": ""
+        }
+      ],
+      "prices": {
+        "SP-20260708-001": 550
+      }
     }
   ],
   "suppliers": [
@@ -1022,6 +1041,13 @@
   "favorites": [],
   "operationLogs": [
     {
+      "id": 1783689510427,
+      "time": "2026-07-10T13:18:30.427Z",
+      "type": "add",
+      "content": "新增客户",
+      "detail": "翡翠公园游泳池"
+    },
+    {
       "id": 1783689456843,
       "time": "2026-07-10T13:17:36.843Z",
       "type": "delete",
@@ -1618,7 +1644,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-10T13:18:20.413Z"
+    "lastSync": "2026-07-10T13:18:29.650Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,

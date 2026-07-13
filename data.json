@@ -410,6 +410,23 @@
         }
       ],
       "prices": {}
+    },
+    {
+      "id": "KH-20260713-003",
+      "name": "全民泳之乐",
+      "address": "",
+      "settleType": "cash",
+      "creditDays": 30,
+      "remark": "",
+      "contacts": [
+        {
+          "name": "黄铭宇",
+          "title": "",
+          "phone": "13017130899",
+          "wechat": ""
+        }
+      ],
+      "prices": {}
     }
   ],
   "suppliers": [
@@ -1234,6 +1251,13 @@
   "favorites": [],
   "operationLogs": [
     {
+      "id": 1783910747650,
+      "time": "2026-07-13T02:45:47.650Z",
+      "type": "add",
+      "content": "新增客户",
+      "detail": "全民泳之乐"
+    },
+    {
       "id": 1783910572417,
       "time": "2026-07-13T02:42:52.417Z",
       "type": "add",
@@ -1907,7 +1931,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-13T02:43:15.219Z"
+    "lastSync": "2026-07-13T02:43:20.627Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,

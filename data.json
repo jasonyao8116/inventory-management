@@ -383,6 +383,16 @@
         }
       ],
       "prices": {}
+    },
+    {
+      "id": "KH-20260713-001",
+      "name": "中恒化工孙松",
+      "address": "",
+      "settleType": "cash",
+      "creditDays": 30,
+      "remark": "",
+      "contacts": [],
+      "prices": {}
     }
   ],
   "suppliers": [
@@ -1206,6 +1216,13 @@
   ],
   "favorites": [],
   "operationLogs": [
+    {
+      "id": 1783910518458,
+      "time": "2026-07-13T02:41:58.458Z",
+      "type": "add",
+      "content": "新增客户",
+      "detail": "中恒化工孙松"
+    },
     {
       "id": 1783783009362,
       "time": "2026-07-11T15:16:49.362Z",

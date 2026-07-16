@@ -491,6 +491,16 @@
       "prices": {
         "SP-20260708-003": 700
       }
+    },
+    {
+      "id": "KH-20260716-003",
+      "name": "金色摇篮幼儿园",
+      "address": "",
+      "settleType": "cash",
+      "creditDays": 30,
+      "remark": "",
+      "contacts": [],
+      "prices": {}
     }
   ],
   "suppliers": [
@@ -1675,6 +1685,13 @@
   "favorites": [],
   "operationLogs": [
     {
+      "id": 1784227822950,
+      "time": "2026-07-16T18:50:22.950Z",
+      "type": "add",
+      "content": "新增客户",
+      "detail": "金色摇篮幼儿园"
+    },
+    {
       "id": 1784227779679,
       "time": "2026-07-16T18:49:39.679Z",
       "type": "purchase",
@@ -2677,7 +2694,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-16T18:50:14.736Z"
+    "lastSync": "2026-07-16T18:50:20.164Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,

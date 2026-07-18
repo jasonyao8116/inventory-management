@@ -1462,7 +1462,7 @@
       let list = appData.sales.filter(s => {
         if (saleFilter.customerId && s.customerId !== saleFilter.customerId) return false;
         if (saleFilter.search && !s.id.includes(saleFilter.search)) return false;
-        if (saleFilter.unpaidOnly && getSaleStatus(s) === '已收款') return false;
+        if (saleFilter.unpaidOnly && (getSaleStatus(s) === 'paid' || getSaleStatus(s) === 'returned')) return false;
         return true;
       }).sort((a, b) => (b.id || '').localeCompare(a.id || ''));
 

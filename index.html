@@ -1510,11 +1510,12 @@
           ${customer?.address ? `<div class="detail-row"><span class="detail-label">地址</span><span class="detail-value">${customer.address}</span></div>` : ''}
           <div style="margin:16px 0;border-top:1px solid #ddd;padding-top:16px">
             <table class="table">
-              <thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th></tr></thead>
+              <thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th>${(s.items||[]).some(i=>i.returned>0)?'<th>已退</th>':''}</tr></thead>
               <tbody>
                 ${(s.items||[]).map(i => {
                   const prod = appData.products.find(x=>x.id===i.productId);
-                  return `<tr><td>${prod?.name||i.productId}</td><td>${i.quantity}${prod?.unit||''}</td><td>${formatMoney(i.price)}</td><td>${formatMoney(i.price*i.quantity)}</td></tr>`;
+                  const hasReturn = (s.items||[]).some(it=>it.returned>0);
+                  return `<tr><td>${prod?.name||i.productId}</td><td>${i.quantity}${prod?.unit||''}</td><td>${formatMoney(i.price)}</td><td>${formatMoney(i.price*i.quantity)}</td>${hasReturn?`<td>${i.returned||0}</td>`:''}</tr>`;
                 }).join('')}
               </tbody>
             </table>
@@ -1785,6 +1786,18 @@
       const idx = appData.sales.findIndex(x => x.id === s.id);
       if (idx >= 0) appData.sales[idx] = s;
       else { appData.sales.push(s); }
+      // 如果选择已收款，自动创建全额收款记录
+      if (s.payStatus === 'paid') {
+        const total = calcSaleTotal(s);
+        const existingPaid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+        const owed = total - existingPaid;
+        if (owed > 0) {
+          appData.payments.push({
+            id: genId('FK'), customerId: s.customerId, amount: owed,
+            date: s.date, method: 'transfer', saleId: s.id, remark: '新建销售单自动收款'
+          });
+        }
+      }
       saveData();
       addLog('sale', '销售出库', `${s.id} 合计${formatMoney(calcSaleTotal(s))}`);
       closeModal();
@@ -1823,9 +1836,11 @@
         <p style="margin-bottom:16px">请输入退货数量</p>
         ${(s.items||[]).map((item, i) => {
           const prod = appData.products.find(x=>x.id===item.productId);
+          const returned = item.returned || 0;
+          const maxReturn = item.quantity - returned;
           return `<div class="form-group">
-            <label class="form-label">${prod?.name||item.productId} (销售: ${item.quantity})</label>
-            <input type="number" class="form-input" id="sale_return_qty_${i}" value="0" max="${item.quantity}">
+            <label class="form-label">${prod?.name||item.productId} (销售: ${item.quantity}${returned>0?'，已退: '+returned:''}，可退: ${maxReturn})</label>
+            <input type="number" class="form-input" id="sale_return_qty_${i}" value="0" max="${maxReturn}" min="0">
           </div>`;
         }).join('')}
         <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="sale_return_remark"></textarea></div>`,
@@ -1838,17 +1853,31 @@
     function confirmReturnSale(id) {
       const s = appData.sales.find(x => x.id === id);
       const remark = document.getElementById('sale_return_remark').value;
-      s.items.forEach((item, i) => {
+      let hasReturn = false;
+      for (let i = 0; i < s.items.length; i++) {
+        const item = s.items[i];
         const qty = parseInt(document.getElementById('sale_return_qty_' + i).value) || 0;
+        if (qty < 0) { showToast('退货数量不能为负数'); return; }
+        const returned = item.returned || 0;
+        const maxReturn = item.quantity - returned;
+        if (qty > maxReturn) {
+          const prod = appData.products.find(x=>x.id===item.productId);
+          showToast(`${prod?.name||item.productId} 最多可退 ${maxReturn} 件`);
+          return;
+        }
         if (qty > 0) {
+          item.returned = returned + qty;
           appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) + qty;
           addInventoryLog(item.productId, qty, 'sale_return', s.id);
+          hasReturn = true;
         }
-      });
+      }
+      if (!hasReturn) { showToast('请输入退货数量'); return; }
       s.remark = (s.remark||'') + (remark ? '\n退货:' + remark : '');
       saveData();
       addLog('sale', '销售退货', s.id);
-      closeModal();
+      closeModal(); // 关闭退货弹窗
+      closeModal(); // 关闭底下的销售单详情弹窗
       renderPage();
       showToast('退货成功');
     }
@@ -1996,7 +2025,8 @@
       saveData();
       const customer = appData.customers.find(c => c.id === payment.customerId);
       addLog('add', '收款记录', `${customer?.name||''} ${formatMoney(payment.amount)}`);
-      closeModal();
+      closeModal(); // 关闭收款弹窗
+      closeModal(); // 关闭底下的销售单详情弹窗
       renderPage();
       showToast('收款成功');
     }

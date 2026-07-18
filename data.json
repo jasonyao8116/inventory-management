@@ -1062,87 +1062,6 @@
   ],
   "payments": [
     {
-      "id": "FK-20260710-001",
-      "customerId": "KH-20260708-002",
-      "amount": 1740,
-      "date": "2026-07-10",
-      "method": "cash",
-      "saleId": "XS-20260709-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260710-002",
-      "customerId": "KH-20260708-002",
-      "amount": 580,
-      "date": "2026-07-10",
-      "method": "cash",
-      "saleId": "XS-20260708-005",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260710-003",
-      "customerId": "KH-20260710-001",
-      "amount": 550,
-      "date": "2026-07-10",
-      "method": "cash",
-      "saleId": "XS-20260710-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260711-001",
-      "customerId": "KH-20260711-001",
-      "amount": 1810,
-      "date": "2026-07-11",
-      "method": "cash",
-      "saleId": "XS-20260711-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260711-002",
-      "customerId": "KH-20260711-002",
-      "amount": 630,
-      "date": "2026-07-11",
-      "method": "cash",
-      "saleId": "XS-20260711-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260713-001",
-      "customerId": "KH-20260713-002",
-      "amount": 680,
-      "date": "2026-07-13",
-      "method": "cash",
-      "saleId": "XS-20260713-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260713-002",
-      "customerId": "KH-20260713-001",
-      "amount": 500,
-      "date": "2026-07-13",
-      "method": "cash",
-      "saleId": "XS-20260713-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260715-001",
-      "customerId": "KH-20260713-002",
-      "amount": 90,
-      "date": "2026-07-15",
-      "method": "cash",
-      "saleId": "XS-20260715-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260716-001",
-      "customerId": "KH-20260716-001",
-      "amount": 600,
-      "date": "2026-07-16",
-      "method": "cash",
-      "saleId": "XS-20260716-002",
-      "remark": ""
-    },
-    {
       "id": "FK-20260718-001",
       "customerId": "KH-20260716-003",
       "amount": 180,
@@ -1176,6 +1095,87 @@
       "date": "2026-07-18",
       "method": "cash",
       "saleId": "XS-20260718-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260716-001",
+      "customerId": "KH-20260716-001",
+      "amount": 600,
+      "date": "2026-07-16",
+      "method": "cash",
+      "saleId": "XS-20260716-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260715-001",
+      "customerId": "KH-20260713-002",
+      "amount": 90,
+      "date": "2026-07-15",
+      "method": "cash",
+      "saleId": "XS-20260715-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260713-001",
+      "customerId": "KH-20260713-002",
+      "amount": 680,
+      "date": "2026-07-13",
+      "method": "cash",
+      "saleId": "XS-20260713-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260713-002",
+      "customerId": "KH-20260713-001",
+      "amount": 500,
+      "date": "2026-07-13",
+      "method": "cash",
+      "saleId": "XS-20260713-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260711-001",
+      "customerId": "KH-20260711-001",
+      "amount": 1810,
+      "date": "2026-07-11",
+      "method": "cash",
+      "saleId": "XS-20260711-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260711-002",
+      "customerId": "KH-20260711-002",
+      "amount": 630,
+      "date": "2026-07-11",
+      "method": "cash",
+      "saleId": "XS-20260711-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260710-001",
+      "customerId": "KH-20260708-002",
+      "amount": 1740,
+      "date": "2026-07-10",
+      "method": "cash",
+      "saleId": "XS-20260709-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260710-002",
+      "customerId": "KH-20260708-002",
+      "amount": 580,
+      "date": "2026-07-10",
+      "method": "cash",
+      "saleId": "XS-20260708-005",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260710-003",
+      "customerId": "KH-20260710-001",
+      "amount": 550,
+      "date": "2026-07-10",
+      "method": "cash",
+      "saleId": "XS-20260710-002",
       "remark": ""
     }
   ],
@@ -2996,7 +2996,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-18T11:34:50.089Z"
+    "lastSync": "2026-07-18T11:34:57.787Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,
@@ -3024,6 +3024,6 @@
   "FK_20260716": 1,
   "SP_20260716": 2,
   "GY_20260716": 1,
-  "XS_20260718": 4,
+  "XS_20260718": 5,
   "FK_20260718": 4
 }

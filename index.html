@@ -550,7 +550,7 @@
 
       appData.sales.forEach(s => {
         const saleDate = s.date.slice(0,10);
-        const amount = calcSaleTotal(s);
+        const amount = calcSaleNetTotal(s);
         if (saleDate === today) todaySale += amount;
         if (saleDate.slice(0,7) === monthStart) monthSale += amount;
       });
@@ -612,7 +612,7 @@
             <div class="name">${customer?.name || '未知客户'}</div>
             <div class="desc">${s.id} · ${formatDate(s.date)}</div>
           </div>
-          <div class="stat-value" style="font-size:16px">${formatMoney(calcSaleTotal(s))}</div>
+          <div class="stat-value" style="font-size:16px">${formatMoney(calcSaleNetTotal(s))}</div>
         </div>`;
       }).join('');
     }
@@ -824,7 +824,17 @@
     }
 
     function deleteSale(id) {
-      confirm('确定删除该销售单？相关收款记录不会被删除。', () => {
+      confirm('确定删除该销售单？库存将恢复，关联收款记录也将删除。', () => {
+        const s = appData.sales.find(x => x.id === id);
+        if (s) {
+          // 恢复库存（只恢复未退货部分，已退货部分在退货时已加回库存）
+          (s.items || []).forEach(item => {
+            const effQty = item.quantity - (item.returned || 0);
+            appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) + effQty;
+          });
+        }
+        // 删除关联收款记录
+        appData.payments = appData.payments.filter(x => x.saleId !== id);
         appData.sales = appData.sales.filter(x => x.id !== id);
         saveData();
         addLog('delete', '删除销售单', id);
@@ -1379,12 +1389,20 @@
       p.items = p.items.filter(i => i.productId && i.quantity > 0);
       if (!p.supplierId) { showToast('请选择供应商'); return; }
       if (!p.items.length) { showToast('请添加商品'); return; }
+      // 编辑时先恢复旧库存（只恢复未退货部分）
+      const idx = appData.purchases.findIndex(x => x.id === p.id);
+      if (idx >= 0) {
+        const oldP = appData.purchases[idx];
+        (oldP.items || []).forEach(item => {
+          const effQty = item.quantity - (item.returned || 0);
+          appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) - effQty;
+        });
+      }
       // 更新库存
       p.items.forEach(item => {
         appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) + item.quantity;
         addInventoryLog(item.productId, item.quantity, 'purchase', p.id);
       });
-      const idx = appData.purchases.findIndex(x => x.id === p.id);
       if (idx >= 0) appData.purchases[idx] = p;
       else { p.status = 'completed'; appData.purchases.push(p); }
       saveData();
@@ -1483,7 +1501,8 @@
           <div class="desc">${s.id} · ${formatDate(s.date)}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-weight:600">${formatMoney(total)}</div>
+          <div style="font-weight:600">${formatMoney(netTotal)}</div>
+          ${total !== netTotal ? `<div style="font-size:11px;color:var(--gray);text-decoration:line-through">${formatMoney(total)}</div>` : ''}
           <span class="badge badge-${st.class}">${st.text}</span>
         </div>
       </div>`;
@@ -1640,7 +1659,7 @@
     }
 
     function updatePartialOwed() {
-      const total = calcSaleTotal(editingSale);
+      const total = calcSaleNetTotal(editingSale);
       const paid = parseFloat(document.getElementById('sf_partialAmount').value) || 0;
       const owed = total - paid;
       document.getElementById('sf_owedDisplay').textContent = formatMoney(owed);
@@ -1836,6 +1855,15 @@
       s.items = s.items.filter(i => i.productId && i.quantity > 0);
       if (!s.customerId) { showToast('请选择客户'); return; }
       if (!s.items.length) { showToast('请添加商品'); return; }
+      // 编辑时先恢复旧库存（只恢复未退货部分，已退货部分在退货时已加回库存）
+      const idx = appData.sales.findIndex(x => x.id === s.id);
+      if (idx >= 0) {
+        const oldSale = appData.sales[idx];
+        (oldSale.items || []).forEach(item => {
+          const effQty = item.quantity - (item.returned || 0);
+          appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) + effQty;
+        });
+      }
       // 检查库存
       for (const item of s.items) {
         const stock = appData.inventory[item.productId] || 0;
@@ -1849,12 +1877,11 @@
         appData.inventory[item.productId] = (appData.inventory[item.productId] || 0) - item.quantity;
         addInventoryLog(item.productId, -item.quantity, 'sale', s.id);
       });
-      const idx = appData.sales.findIndex(x => x.id === s.id);
       if (idx >= 0) appData.sales[idx] = s;
       else { appData.sales.push(s); }
-      // 如果选择已收款，自动创建全额收款记录
+      // 如果选择已收款，自动创建全额收款记录（按净额，扣除已退货部分）
       if (s.payStatus === 'paid') {
-        const total = calcSaleTotal(s);
+        const total = calcSaleNetTotal(s);
         const existingPaid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
         const owed = total - existingPaid;
         if (owed > 0) {
@@ -1863,6 +1890,10 @@
             date: s.date, method: 'transfer', saleId: s.id, remark: '新建销售单自动收款'
           });
         }
+      }
+      // 如果改为未收款，清除该销售单的收款记录
+      if (s.payStatus === 'unpaid') {
+        appData.payments = appData.payments.filter(p => p.saleId !== s.id);
       }
       // 如果选择部分收款，创建已填金额的收款记录
       if (s.payStatus === 'partial') {
@@ -2278,8 +2309,9 @@
       appData.sales.forEach(s => {
         (s.items||[]).forEach(item => {
           if (!stats[item.productId]) stats[item.productId] = { qty: 0, amount: 0 };
-          stats[item.productId].qty += item.quantity;
-          stats[item.productId].amount += item.price * item.quantity;
+          const effQty = item.quantity - (item.returned || 0);
+          stats[item.productId].qty += effQty;
+          stats[item.productId].amount += item.price * effQty;
         });
       });
       const sorted = Object.entries(stats).sort((a, b) => b[1].amount - a[1].amount);
@@ -2397,8 +2429,9 @@
         const m = s.date.slice(0,7);
         if (!months[m]) months[m] = { sale: 0, cost: 0 };
         (s.items||[]).forEach(item => {
-          months[m].sale += item.price * item.quantity;
-          months[m].cost += getAvgCost(item.productId) * item.quantity;
+          const effQty = item.quantity - (item.returned || 0);
+          months[m].sale += item.price * effQty;
+          months[m].cost += getAvgCost(item.productId) * effQty;
         });
       });
       appData.purchases.forEach(p => {
@@ -2460,11 +2493,11 @@
       // 获取全额退货的销售单ID集合，用于排除其收款记录
       const fullyReturnedIds = new Set(appData.sales.filter(s => s.customerId === customerId && isSaleFullyReturned(s)).map(s => s.id));
       const payments = appData.payments.filter(p => p.customerId === customerId && p.date >= startDate && p.date <= endDate && !fullyReturnedIds.has(p.saleId));
-      // 期初欠款
+      // 期初欠款：只扣除账期开始日期之前的收款，账期内的回款在 totalPaid 中统计
       let beginOwed = 0;
       appData.sales.filter(s => s.customerId === customerId && s.date < startDate && !isSaleFullyReturned(s)).forEach(s => {
         beginOwed += calcSaleNetTotal(s);
-        beginOwed -= appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+        beginOwed -= appData.payments.filter(p => p.saleId === s.id && p.date < startDate).reduce((sum, p) => sum + p.amount, 0);
       });
       const totalSale = sales.filter(s => !isSaleFullyReturned(s)).reduce((sum, s) => sum + calcSaleNetTotal(s), 0);
       const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);

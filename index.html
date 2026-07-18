@@ -556,7 +556,7 @@
       });
 
       appData.customers.forEach(c => {
-        totalOwed += (c.totalOwed || 0);
+        totalOwed += calcCustomerOwed(c.id);
       });
 
       Object.keys(appData.inventory).forEach(pid => {
@@ -878,9 +878,10 @@
 
     function calcCustomerOwed(customerId) {
       let owed = 0;
-      appData.sales.filter(s => s.customerId === customerId).forEach(s => {
+      appData.sales.filter(s => s.customerId === customerId && !isSaleFullyReturned(s)).forEach(s => {
+        const netTotal = calcSaleNetTotal(s);
         const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
-        owed += calcSaleTotal(s) - paid;
+        owed += netTotal - paid;
       });
       return owed;
     }
@@ -1464,8 +1465,17 @@
     function renderSaleItem(s) {
       const customer = appData.customers.find(c => c.id === s.customerId);
       const total = calcSaleTotal(s);
+      const netTotal = calcSaleNetTotal(s);
       const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
-      const status = paid >= total ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
+      const status = getSaleStatus(s);
+      const partialReturn = isSalePartialReturn(s);
+      const statusMap = {
+        returned: { text: '已退货', class: 'danger' },
+        paid: { text: partialReturn ? '已收款(部分退货)' : '已收款', class: 'success' },
+        partial: { text: partialReturn ? '部分收款(部分退货)' : '部分收款', class: 'warning' },
+        unpaid: { text: partialReturn ? '未收款(部分退货)' : '未收款', class: 'danger' }
+      };
+      const st = statusMap[status];
       return `<div class="list-item" onclick="viewSale('${s.id}')">
         <div class="avatar" style="background:linear-gradient(135deg,#3498db,#2980b9)">💰</div>
         <div class="info">
@@ -1474,13 +1484,36 @@
         </div>
         <div style="text-align:right">
           <div style="font-weight:600">${formatMoney(total)}</div>
-          <span class="badge badge-${status==='paid'?'success':(status==='partial'?'warning':'danger')}">${status==='paid'?'已收款':(status==='partial'?'部分收款':'未收款')}</span>
+          <span class="badge badge-${st.class}">${st.text}</span>
         </div>
       </div>`;
     }
 
     function calcSaleTotal(s) {
       return (s.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
+    }
+
+    function isSaleFullyReturned(s) {
+      return (s.items || []).length > 0 && (s.items || []).every(i => (i.returned || 0) >= i.quantity);
+    }
+
+    function isSalePartialReturn(s) {
+      return (s.items || []).some(i => (i.returned || 0) > 0) && !isSaleFullyReturned(s);
+    }
+
+    // 扣除退货后的有效金额
+    function calcSaleNetTotal(s) {
+      return (s.items || []).reduce((sum, i) => sum + i.price * (i.quantity - (i.returned || 0)), 0);
+    }
+
+    // 获取销售单状态：returned / partial_return / paid / partial / unpaid
+    function getSaleStatus(s) {
+      if (isSaleFullyReturned(s)) return 'returned';
+      const netTotal = calcSaleNetTotal(s);
+      const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+      if (paid >= netTotal && netTotal > 0) return 'paid';
+      if (paid > 0) return 'partial';
+      return 'unpaid';
     }
 
     function newSale() {
@@ -1500,7 +1533,11 @@
       const s = appData.sales.find(x => x.id === id);
       const customer = appData.customers.find(c => c.id === s.customerId);
       const total = calcSaleTotal(s);
+      const netTotal = calcSaleNetTotal(s);
       const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+      const returnedAmount = total - netTotal;
+      const fullyReturned = isSaleFullyReturned(s);
+      const owed = fullyReturned ? 0 : (netTotal - paid);
       openModal('销售单详情', `
         <div class="print-area">
           <h2 style="text-align:center;margin-bottom:16px">📄 送货单</h2>
@@ -1521,8 +1558,9 @@
             </table>
           </div>
           <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:20px;color:var(--primary)">${formatMoney(total)}</span></div>
+          ${returnedAmount > 0 ? `<div class="detail-row"><span class="detail-label">退货金额</span><span class="detail-value" style="color:var(--warning)">-${formatMoney(returnedAmount)}</span></div>` : ''}
           <div class="detail-row"><span class="detail-label">已收款</span><span class="detail-value" style="color:var(--success)">${formatMoney(paid)}</span></div>
-          <div class="detail-row"><span class="detail-label">未收款</span><span class="detail-value" style="color:${total-paid>0?'var(--danger)':''}">${formatMoney(total-paid)}</span></div>
+          <div class="detail-row"><span class="detail-label">未收款</span><span class="detail-value" style="color:${owed>0?'var(--danger)':''}">${formatMoney(owed)}</span></div>
           ${s.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${s.remark}</span></div>` : ''}
           <div style="margin-top:30px;border-top:1px dashed #ddd;padding-top:16px">
             <div style="display:flex;justify-content:space-between">
@@ -1534,8 +1572,8 @@
         `<button class="btn btn-danger" onclick="deleteSale('${s.id}')">删除</button>
          <button class="btn btn-outline" onclick="closeModal()">关闭</button>
          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
-         ${paid < total ? `<button class="btn btn-success" onclick="quickReceive('${s.id}')">收款</button>` : ''}
-         <button class="btn btn-warning" onclick="returnSale('${s.id}')">退货</button>`,
+         ${!fullyReturned && owed > 0 ? `<button class="btn btn-success" onclick="quickReceive('${s.id}')">收款</button>` : ''}
+         ${!fullyReturned ? `<button class="btn btn-warning" onclick="returnSale('${s.id}')">退货</button>` : ''}`,
         () => {}
       );
     }
@@ -1565,11 +1603,19 @@
         </div>
         <div class="form-row" style="margin-top:16px">
           <div class="form-group"><label class="form-label">收款状态</label>
-            <select class="form-select" id="sf_payStatus">
+            <select class="form-select" id="sf_payStatus" onchange="togglePartialPay()">
               <option value="unpaid" ${s.payStatus==='unpaid'?'selected':''}>未收款</option>
               <option value="partial" ${s.payStatus==='partial'?'selected':''}>部分收款</option>
               <option value="paid" ${s.payStatus==='paid'?'selected':''}>已收款</option>
             </select>
+          </div>
+        </div>
+        <div id="sf_partialWrap" style="display:none">
+          <div class="form-group"><label class="form-label">已收金额</label>
+            <input class="form-input" type="number" step="0.01" id="sf_partialAmount" placeholder="0.00" value="${s.payStatus==='partial' ? (appData.payments.filter(p=>p.saleId===s.id).reduce((sum,p)=>sum+p.amount,0)||'') : ''}">
+          </div>
+          <div class="form-group"><label class="form-label">未收金额</label>
+            <div id="sf_owedDisplay" style="padding:12px;background:var(--light-gray);border-radius:8px;color:var(--danger)">¥0.00</div>
           </div>
         </div>
         <div class="form-group"><label class="form-label">备注</label>
@@ -1578,6 +1624,26 @@
          <button class="btn btn-primary" onclick="saveSale()">保存</button>`,
         () => editingSale = null
       );
+      togglePartialPay();
+      document.getElementById('sf_partialAmount').addEventListener('input', updatePartialOwed);
+    }
+
+    function togglePartialPay() {
+      const status = document.getElementById('sf_payStatus').value;
+      const wrap = document.getElementById('sf_partialWrap');
+      if (status === 'partial') {
+        wrap.style.display = 'block';
+        updatePartialOwed();
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+
+    function updatePartialOwed() {
+      const total = calcSaleTotal(editingSale);
+      const paid = parseFloat(document.getElementById('sf_partialAmount').value) || 0;
+      const owed = total - paid;
+      document.getElementById('sf_owedDisplay').textContent = formatMoney(owed);
     }
 
     function renderSaleItemRow(item, idx) {
@@ -1798,6 +1864,33 @@
           });
         }
       }
+      // 如果选择部分收款，创建已填金额的收款记录
+      if (s.payStatus === 'partial') {
+        const partialAmount = parseFloat(document.getElementById('sf_partialAmount').value) || 0;
+        if (partialAmount > 0) {
+          const existingPaid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
+          // 编辑时只补差额（如果已收款记录小于填入金额）
+          if (partialAmount > existingPaid) {
+            appData.payments.push({
+              id: genId('FK'), customerId: s.customerId, amount: partialAmount - existingPaid,
+              date: s.date, method: 'transfer', saleId: s.id, remark: '新建销售单部分收款'
+            });
+          } else if (partialAmount < existingPaid) {
+            // 填入金额小于已有记录，移除差额对应的记录
+            let toRemove = existingPaid - partialAmount;
+            const payments = appData.payments.filter(p => p.saleId === s.id);
+            for (let i = payments.length - 1; i >= 0 && toRemove > 0; i--) {
+              if (payments[i].amount <= toRemove) {
+                appData.payments = appData.payments.filter(p => p.id !== payments[i].id);
+                toRemove -= payments[i].amount;
+              } else {
+                payments[i].amount -= toRemove;
+                toRemove = 0;
+              }
+            }
+          }
+        }
+      }
       saveData();
       addLog('sale', '销售出库', `${s.id} 合计${formatMoney(calcSaleTotal(s))}`);
       closeModal();
@@ -1808,7 +1901,7 @@
     function quickReceive(saleId) {
       const s = appData.sales.find(x => x.id === saleId);
       if (!s) return;
-      const total = calcSaleTotal(s);
+      const total = calcSaleNetTotal(s);
       const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
       const owed = total - paid;
       openModal('收款', `
@@ -1917,8 +2010,8 @@
         <tbody>
           ${customers.map(c => {
             let total = 0, paid = 0;
-            appData.sales.filter(s => s.customerId === c.id).forEach(s => {
-              total += calcSaleTotal(s);
+            appData.sales.filter(s => s.customerId === c.id && !isSaleFullyReturned(s)).forEach(s => {
+              total += calcSaleNetTotal(s);
               paid += appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
             });
             const owed = total - paid;
@@ -1977,8 +2070,8 @@
         infoDiv.style.display = 'block';
         let totalOwed = 0, unpaidCount = 0;
         const unpaidSales = [];
-        appData.sales.filter(s => s.customerId === customerId).forEach(s => {
-          const total = calcSaleTotal(s);
+        appData.sales.filter(s => s.customerId === customerId && !isSaleFullyReturned(s)).forEach(s => {
+          const total = calcSaleNetTotal(s);
           const paid = appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
           const owed = total - paid;
           if (owed > 0) { unpaidCount++; totalOwed += owed; unpaidSales.push({id:s.id, owed:owed, total:total}); }
@@ -2196,8 +2289,8 @@
     function renderCustomerOwedReport() {
       const stats = appData.customers.map(c => {
         let total = 0, paid = 0;
-        appData.sales.filter(s => s.customerId === c.id).forEach(s => {
-          total += calcSaleTotal(s);
+        appData.sales.filter(s => s.customerId === c.id && !isSaleFullyReturned(s)).forEach(s => {
+          total += calcSaleNetTotal(s);
           paid += appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
         });
         return { name: c.name, total, paid, owed: total - paid };
@@ -2216,8 +2309,9 @@
       let totalSale = 0, totalCost = 0;
       appData.sales.forEach(s => {
         (s.items||[]).forEach(item => {
-          totalSale += item.price * item.quantity;
-          totalCost += getAvgCost(item.productId) * item.quantity;
+          const effQty = item.quantity - (item.returned || 0);
+          totalSale += item.price * effQty;
+          totalCost += getAvgCost(item.productId) * effQty;
         });
       });
       const profit = totalSale - totalCost;
@@ -2359,11 +2453,11 @@
       const payments = appData.payments.filter(p => p.customerId === customerId && p.date >= startDate && p.date <= endDate);
       // 期初欠款
       let beginOwed = 0;
-      appData.sales.filter(s => s.customerId === customerId && s.date < startDate).forEach(s => {
-        beginOwed += calcSaleTotal(s);
+      appData.sales.filter(s => s.customerId === customerId && s.date < startDate && !isSaleFullyReturned(s)).forEach(s => {
+        beginOwed += calcSaleNetTotal(s);
         beginOwed -= appData.payments.filter(p => p.saleId === s.id).reduce((sum, p) => sum + p.amount, 0);
       });
-      const totalSale = sales.reduce((sum, s) => sum + calcSaleTotal(s), 0);
+      const totalSale = sales.filter(s => !isSaleFullyReturned(s)).reduce((sum, s) => sum + calcSaleNetTotal(s), 0);
       const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
       const endOwed = beginOwed + totalSale - totalPaid;
       const methodNames = { cash:'现金', transfer:'转账', wechat:'微信', alipay:'支付宝' };
@@ -2376,7 +2470,7 @@
           <div class="detail-row"><span class="detail-label">期初欠款</span><span class="detail-value">${formatMoney(beginOwed)}</span></div>
           <h4 style="margin:16px 0">本期销售明细</h4>
           ${sales.length ? `<table class="table"><thead><tr><th>单号</th><th>日期</th><th>金额</th></tr></thead>
-            <tbody>${sales.map(s => `<tr><td>${s.id}</td><td>${formatDate(s.date)}</td><td>${formatMoney(calcSaleTotal(s))}</td></tr>`).join('')}
+            <tbody>${sales.map(s => `<tr><td>${s.id}</td><td>${formatDate(s.date)}</td><td>${formatMoney(calcSaleNetTotal(s))}</td></tr>`).join('')}
             </tbody></table><div style="text-align:right;margin-top:8px;font-weight:600">合计: ${formatMoney(totalSale)}</div>` : '<p>无销售记录</p>'}
           <h4 style="margin:16px 0">本期回款明细</h4>
           ${payments.length ? `<table class="table"><thead><tr><th>日期</th><th>方式</th><th>金额</th></tr></thead>

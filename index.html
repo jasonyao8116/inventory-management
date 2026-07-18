@@ -602,7 +602,7 @@
     }
 
     function renderRecentSales() {
-      const recent = appData.sales.slice(0,5);
+      const recent = appData.sales.slice().sort((a,b) => (b.date || '').localeCompare(a.date || '')).slice(0,5);
       if (!recent.length) return '<div class="empty-state"><p>暂无销售记录</p></div>';
       return recent.map(s => {
         const customer = appData.customers.find(c => c.id === s.customerId);

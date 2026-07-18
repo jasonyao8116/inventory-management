@@ -1456,12 +1456,13 @@
 
     // ============ 销售管理 ============
     let editingSale = null;
-    let saleFilter = { search: '', customerId: '' };
+    let saleFilter = { search: '', customerId: '', unpaidOnly: false };
 
     function renderSaleList() {
       let list = appData.sales.filter(s => {
         if (saleFilter.customerId && s.customerId !== saleFilter.customerId) return false;
         if (saleFilter.search && !s.id.includes(saleFilter.search)) return false;
+        if (saleFilter.unpaidOnly && getSaleStatus(s) === '已收款') return false;
         return true;
       }).sort((a, b) => (b.id || '').localeCompare(a.id || ''));
 
@@ -1471,8 +1472,9 @@
           <button onclick="renderSaleList()">🔍</button>
         </div>
         <div class="filter-bar">
-          <span class="filter-chip ${!saleFilter.customerId?'active':''}" onclick="saleFilter.customerId='';renderSaleList()">全部</span>
-          ${appData.customers.map(c => `<span class="filter-chip ${saleFilter.customerId===c.id?'active':''}" onclick="saleFilter.customerId='${c.id}';renderSaleList()">${c.name}</span>`).join('')}
+          <span class="filter-chip ${!saleFilter.customerId && !saleFilter.unpaidOnly?'active':''}" onclick="saleFilter.customerId='';saleFilter.unpaidOnly=false;renderSaleList()">全部</span>
+          <span class="filter-chip ${saleFilter.unpaidOnly?'active':''}" style="color:#e74c3c;border-color:#e74c3c" onclick="saleFilter.unpaidOnly=!saleFilter.unpaidOnly;saleFilter.customerId='';renderSaleList()">未收款</span>
+          ${appData.customers.map(c => `<span class="filter-chip ${saleFilter.customerId===c.id && !saleFilter.unpaidOnly?'active':''}" onclick="saleFilter.customerId='${c.id}';saleFilter.unpaidOnly=false;renderSaleList()">${c.name}</span>`).join('')}
         </div>
         <div class="card">
           ${list.length ? list.map(s => renderSaleItem(s)).join('') : '<div class="empty-state"><p>暂无销售记录</p></div>'}

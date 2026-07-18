@@ -1024,7 +1024,8 @@
         {
           "productId": "SP-20260716-002",
           "quantity": 4,
-          "price": 35
+          "price": 35,
+          "returned": 4
         }
       ],
       "payStatus": "unpaid",
@@ -1057,90 +1058,24 @@
       ],
       "payStatus": "paid",
       "remark": ""
+    },
+    {
+      "id": "XS-20260718-005",
+      "date": "2026-07-18",
+      "customerId": "KH-20260716-002",
+      "items": [
+        {
+          "productId": "SP-20260708-014",
+          "quantity": 1,
+          "price": 140,
+          "returned": 1
+        }
+      ],
+      "payStatus": "paid",
+      "remark": ""
     }
   ],
   "payments": [
-    {
-      "id": "FK-20260710-001",
-      "customerId": "KH-20260708-002",
-      "amount": 1740,
-      "date": "2026-07-10",
-      "method": "cash",
-      "saleId": "XS-20260709-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260710-002",
-      "customerId": "KH-20260708-002",
-      "amount": 580,
-      "date": "2026-07-10",
-      "method": "cash",
-      "saleId": "XS-20260708-005",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260710-003",
-      "customerId": "KH-20260710-001",
-      "amount": 550,
-      "date": "2026-07-10",
-      "method": "cash",
-      "saleId": "XS-20260710-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260711-001",
-      "customerId": "KH-20260711-001",
-      "amount": 1810,
-      "date": "2026-07-11",
-      "method": "cash",
-      "saleId": "XS-20260711-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260711-002",
-      "customerId": "KH-20260711-002",
-      "amount": 630,
-      "date": "2026-07-11",
-      "method": "cash",
-      "saleId": "XS-20260711-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260713-001",
-      "customerId": "KH-20260713-002",
-      "amount": 680,
-      "date": "2026-07-13",
-      "method": "cash",
-      "saleId": "XS-20260713-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260713-002",
-      "customerId": "KH-20260713-001",
-      "amount": 500,
-      "date": "2026-07-13",
-      "method": "cash",
-      "saleId": "XS-20260713-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260715-001",
-      "customerId": "KH-20260713-002",
-      "amount": 90,
-      "date": "2026-07-15",
-      "method": "cash",
-      "saleId": "XS-20260715-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260716-001",
-      "customerId": "KH-20260716-001",
-      "amount": 600,
-      "date": "2026-07-16",
-      "method": "cash",
-      "saleId": "XS-20260716-002",
-      "remark": ""
-    },
     {
       "id": "FK-20260718-001",
       "customerId": "KH-20260716-003",
@@ -1175,6 +1110,96 @@
       "date": "2026-07-18",
       "method": "cash",
       "saleId": "XS-20260718-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260718-005",
+      "customerId": "KH-20260716-002",
+      "amount": 140,
+      "date": "2026-07-18",
+      "method": "transfer",
+      "saleId": "XS-20260718-005",
+      "remark": "新建销售单自动收款"
+    },
+    {
+      "id": "FK-20260716-001",
+      "customerId": "KH-20260716-001",
+      "amount": 600,
+      "date": "2026-07-16",
+      "method": "cash",
+      "saleId": "XS-20260716-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260715-001",
+      "customerId": "KH-20260713-002",
+      "amount": 90,
+      "date": "2026-07-15",
+      "method": "cash",
+      "saleId": "XS-20260715-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260713-001",
+      "customerId": "KH-20260713-002",
+      "amount": 680,
+      "date": "2026-07-13",
+      "method": "cash",
+      "saleId": "XS-20260713-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260713-002",
+      "customerId": "KH-20260713-001",
+      "amount": 500,
+      "date": "2026-07-13",
+      "method": "cash",
+      "saleId": "XS-20260713-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260711-001",
+      "customerId": "KH-20260711-001",
+      "amount": 1810,
+      "date": "2026-07-11",
+      "method": "cash",
+      "saleId": "XS-20260711-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260711-002",
+      "customerId": "KH-20260711-002",
+      "amount": 630,
+      "date": "2026-07-11",
+      "method": "cash",
+      "saleId": "XS-20260711-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260710-001",
+      "customerId": "KH-20260708-002",
+      "amount": 1740,
+      "date": "2026-07-10",
+      "method": "cash",
+      "saleId": "XS-20260709-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260710-002",
+      "customerId": "KH-20260708-002",
+      "amount": 580,
+      "date": "2026-07-10",
+      "method": "cash",
+      "saleId": "XS-20260708-005",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260710-003",
+      "customerId": "KH-20260710-001",
+      "amount": 550,
+      "date": "2026-07-10",
+      "method": "cash",
+      "saleId": "XS-20260710-002",
       "remark": ""
     }
   ],
@@ -1222,6 +1247,38 @@
     "SP-20260716-002": 0
   },
   "inventoryLogs": [
+    {
+      "id": 1784374708523,
+      "productId": "SP-20260708-014",
+      "change": 1,
+      "type": "sale_return",
+      "refId": "XS-20260718-005",
+      "time": "2026-07-18T11:38:28.523Z"
+    },
+    {
+      "id": 1784374644497,
+      "productId": "SP-20260708-014",
+      "change": -1,
+      "type": "sale",
+      "refId": "XS-20260718-005",
+      "time": "2026-07-18T11:37:24.497Z"
+    },
+    {
+      "id": 1784374465064,
+      "productId": "SP-20260716-002",
+      "change": -4,
+      "type": "adjust",
+      "refId": "",
+      "time": "2026-07-18T11:34:25.064Z"
+    },
+    {
+      "id": 1784374448654,
+      "productId": "SP-20260716-002",
+      "change": 4,
+      "type": "sale_return",
+      "refId": "XS-20260716-005",
+      "time": "2026-07-18T11:34:08.654Z"
+    },
     {
       "id": 1784373526742,
       "productId": "SP-20260716-002",
@@ -1857,6 +1914,34 @@
   ],
   "favorites": [],
   "operationLogs": [
+    {
+      "id": 1784374708524,
+      "time": "2026-07-18T11:38:28.524Z",
+      "type": "sale",
+      "content": "销售退货",
+      "detail": "XS-20260718-005"
+    },
+    {
+      "id": 1784374644498,
+      "time": "2026-07-18T11:37:24.498Z",
+      "type": "sale",
+      "content": "销售出库",
+      "detail": "XS-20260718-005 合计¥140.00"
+    },
+    {
+      "id": 1784374465064,
+      "time": "2026-07-18T11:34:25.064Z",
+      "type": "edit",
+      "content": "库存调整",
+      "detail": "循环泵活接 -4"
+    },
+    {
+      "id": 1784374448655,
+      "time": "2026-07-18T11:34:08.655Z",
+      "type": "sale",
+      "content": "销售退货",
+      "detail": "XS-20260716-005"
+    },
     {
       "id": 1784373526743,
       "time": "2026-07-18T11:18:46.743Z",
@@ -2965,7 +3050,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-18T11:19:35.529Z"
+    "lastSync": "2026-07-18T11:39:39.778Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,
@@ -2993,6 +3078,6 @@
   "FK_20260716": 1,
   "SP_20260716": 2,
   "GY_20260716": 1,
-  "XS_20260718": 4,
-  "FK_20260718": 4
+  "XS_20260718": 5,
+  "FK_20260718": 5
 }

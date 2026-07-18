@@ -1967,6 +1967,13 @@
       }
       if (!hasReturn) { showToast('请输入退货数量'); return; }
       s.remark = (s.remark||'') + (remark ? '\n退货:' + remark : '');
+      // 全额退货时清除该销售单的收款记录（货物已退回，收款应作废）
+      if (isSaleFullyReturned(s)) {
+        const removedPayments = appData.payments.filter(p => p.saleId === id);
+        if (removedPayments.length > 0) {
+          appData.payments = appData.payments.filter(p => p.saleId !== id);
+        }
+      }
       saveData();
       addLog('sale', '销售退货', s.id);
       closeModal(); // 关闭退货弹窗
@@ -2450,7 +2457,9 @@
       if (!customerId) { showToast('请选择客户'); return; }
       const customer = appData.customers.find(c => c.id === customerId);
       const sales = appData.sales.filter(s => s.customerId === customerId && s.date >= startDate && s.date <= endDate);
-      const payments = appData.payments.filter(p => p.customerId === customerId && p.date >= startDate && p.date <= endDate);
+      // 获取全额退货的销售单ID集合，用于排除其收款记录
+      const fullyReturnedIds = new Set(appData.sales.filter(s => s.customerId === customerId && isSaleFullyReturned(s)).map(s => s.id));
+      const payments = appData.payments.filter(p => p.customerId === customerId && p.date >= startDate && p.date <= endDate && !fullyReturnedIds.has(p.saleId));
       // 期初欠款
       let beginOwed = 0;
       appData.sales.filter(s => s.customerId === customerId && s.date < startDate && !isSaleFullyReturned(s)).forEach(s => {
@@ -2469,8 +2478,8 @@
           <div class="detail-row"><span class="detail-label">对账期间</span><span class="detail-value">${startDate} 至 ${endDate}</span></div>
           <div class="detail-row"><span class="detail-label">期初欠款</span><span class="detail-value">${formatMoney(beginOwed)}</span></div>
           <h4 style="margin:16px 0">本期销售明细</h4>
-          ${sales.length ? `<table class="table"><thead><tr><th>单号</th><th>日期</th><th>金额</th></tr></thead>
-            <tbody>${sales.map(s => `<tr><td>${s.id}</td><td>${formatDate(s.date)}</td><td>${formatMoney(calcSaleNetTotal(s))}</td></tr>`).join('')}
+          ${sales.filter(s=>!isSaleFullyReturned(s)).length ? `<table class="table"><thead><tr><th>单号</th><th>日期</th><th>金额</th></tr></thead>
+            <tbody>${sales.filter(s=>!isSaleFullyReturned(s)).map(s => `<tr><td>${s.id}</td><td>${formatDate(s.date)}</td><td>${formatMoney(calcSaleNetTotal(s))}</td></tr>`).join('')}
             </tbody></table><div style="text-align:right;margin-top:8px;font-weight:600">合计: ${formatMoney(totalSale)}</div>` : '<p>无销售记录</p>'}
           <h4 style="margin:16px 0">本期回款明细</h4>
           ${payments.length ? `<table class="table"><thead><tr><th>日期</th><th>方式</th><th>金额</th></tr></thead>

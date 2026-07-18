@@ -1112,6 +1112,15 @@
       "remark": ""
     },
     {
+      "id": "FK-20260718-005",
+      "customerId": "KH-20260716-002",
+      "amount": 140,
+      "date": "2026-07-18",
+      "method": "transfer",
+      "saleId": "XS-20260718-005",
+      "remark": "新建销售单自动收款"
+    },
+    {
       "id": "FK-20260716-001",
       "customerId": "KH-20260716-001",
       "amount": 600,
@@ -1191,15 +1200,6 @@
       "method": "cash",
       "saleId": "XS-20260710-002",
       "remark": ""
-    },
-    {
-      "id": "FK-20260718-005",
-      "customerId": "KH-20260716-002",
-      "amount": 140,
-      "date": "2026-07-18",
-      "method": "transfer",
-      "saleId": "XS-20260718-005",
-      "remark": "新建销售单自动收款"
     }
   ],
   "expenses": [
@@ -3034,7 +3034,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-18T11:37:26.240Z"
+    "lastSync": "2026-07-18T11:37:36.807Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,

@@ -597,6 +597,14 @@
       "phone": "",
       "category": "泳池设备和配件",
       "remark": ""
+    },
+    {
+      "id": "GY-20260723-001",
+      "name": "淘宝老王环保",
+      "contact": "",
+      "phone": "",
+      "category": "测试剂",
+      "remark": ""
     }
   ],
   "customerPrices": {},
@@ -2085,6 +2093,13 @@
   ],
   "favorites": [],
   "operationLogs": [
+    {
+      "id": 1784792930607,
+      "time": "2026-07-23T07:48:50.607Z",
+      "type": "add",
+      "content": "新增供应商",
+      "detail": "淘宝老王环保"
+    },
     {
       "id": 1784690742698,
       "time": "2026-07-22T03:25:42.698Z",

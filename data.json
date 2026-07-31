@@ -1544,6 +1544,60 @@
   ],
   "payments": [
     {
+      "id": "FK-20260731-001",
+      "customerId": "KH-20260713-002",
+      "amount": 680,
+      "date": "2026-07-31",
+      "method": "transfer",
+      "saleId": "XS-20260731-001",
+      "remark": "新建销售单自动收款"
+    },
+    {
+      "id": "FK-20260729-001",
+      "customerId": "KH-20260721-001",
+      "amount": 740,
+      "date": "2026-07-29",
+      "method": "cash",
+      "saleId": "XS-20260721-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260725-001",
+      "customerId": "KH-20260718-001",
+      "amount": 1360,
+      "date": "2026-07-25",
+      "method": "cash",
+      "saleId": "XS-20260724-002",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260723-001",
+      "customerId": "KH-20260713-002",
+      "amount": 90,
+      "date": "2026-07-23",
+      "method": "cash",
+      "saleId": "XS-20260722-001",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260723-002",
+      "customerId": "KH-20260716-002",
+      "amount": 700,
+      "date": "2026-07-23",
+      "method": "cash",
+      "saleId": "XS-20260716-003",
+      "remark": ""
+    },
+    {
+      "id": "FK-20260721-001",
+      "customerId": "KH-20260718-001",
+      "amount": 570,
+      "date": "2026-07-21",
+      "method": "cash",
+      "saleId": "XS-20260718-006",
+      "remark": ""
+    },
+    {
       "id": "FK-20260718-001",
       "customerId": "KH-20260716-003",
       "amount": 180,
@@ -1668,60 +1722,6 @@
       "method": "cash",
       "saleId": "XS-20260710-002",
       "remark": ""
-    },
-    {
-      "id": "FK-20260721-001",
-      "customerId": "KH-20260718-001",
-      "amount": 570,
-      "date": "2026-07-21",
-      "method": "cash",
-      "saleId": "XS-20260718-006",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260723-001",
-      "customerId": "KH-20260713-002",
-      "amount": 90,
-      "date": "2026-07-23",
-      "method": "cash",
-      "saleId": "XS-20260722-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260723-002",
-      "customerId": "KH-20260716-002",
-      "amount": 700,
-      "date": "2026-07-23",
-      "method": "cash",
-      "saleId": "XS-20260716-003",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260725-001",
-      "customerId": "KH-20260718-001",
-      "amount": 1360,
-      "date": "2026-07-25",
-      "method": "cash",
-      "saleId": "XS-20260724-002",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260729-001",
-      "customerId": "KH-20260721-001",
-      "amount": 740,
-      "date": "2026-07-29",
-      "method": "cash",
-      "saleId": "XS-20260721-001",
-      "remark": ""
-    },
-    {
-      "id": "FK-20260731-001",
-      "customerId": "KH-20260713-002",
-      "amount": 680,
-      "date": "2026-07-31",
-      "method": "transfer",
-      "saleId": "XS-20260731-001",
-      "remark": "新建销售单自动收款"
     }
   ],
   "expenses": [
@@ -4136,7 +4136,7 @@
     }
   ],
   "settings": {
-    "lastSync": "2026-07-31T15:48:36.568Z"
+    "lastSync": "2026-07-31T15:48:42.507Z"
   },
   "SP_20260708": 27,
   "KH_20260708": 2,

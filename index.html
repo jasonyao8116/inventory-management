@@ -34,7 +34,6 @@
     .main-content { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 70px; -webkit-overflow-scrolling: touch; }
     .page { display: none; }
     .page.active { display: block; animation: fadeIn 0.2s ease; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100; }
     .tab-item { flex: 1; padding: 8px 4px; text-align: center; cursor: pointer; border: none; background: none; color: var(--gray); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -469,7 +468,7 @@
     }
 
     let _confirmCallback = null;
-    function appConfirm(msg, callback) {
+    function confirm(msg, callback) {
       _confirmCallback = callback;
       openModal('确认', `<p style="text-align:center;padding:20px;">${msg}</p>`,
         `<button class="btn btn-outline" onclick="closeModal()">取消</button>
@@ -796,7 +795,7 @@
     }
 
     function deleteProduct(id) {
-      appConfirm('确定删除该商品？', () => {
+      confirm('确定删除该商品？', () => {
         const p = appData.products.find(x => x.id === id);
         appData.products = appData.products.filter(x => x.id !== id);
         appData.favorites = appData.favorites.filter(x => x !== id);
@@ -808,36 +807,26 @@
     }
 
     function deletePurchase(id) {
-        const p = appData.purchases.find(x => x.id === id);
-        if (p) {
-          // 恢复库存
-          (p.items || []).forEach(item => {
-            if (appData.inventory[item.productId] !== undefined) {
-              appData.inventory[item.productId] -= (item.quantity - (item.returned || 0));
-            }
-          });
-        }
-        appData.purchases = appData.purchases.filter(x => x.id !== id);
-        saveData();
-        addLog('delete', '删除采购单', id);
-        closeModal();
-        renderPage();
-        showToast('已删除');
-    }
-    
-    function confirmDeletePurchase(id, btn) {
-      const originalText = btn.textContent;
-      btn.textContent = '确认删除？';
-      btn.style.background = '#c0392b';
-      btn.style.animation = 'pulse 0.5s ease infinite';
-      btn.setAttribute('onclick', "deletePurchase('" + id + "')");
-      setTimeout(() => {
-        if (btn) { btn.textContent = originalText; btn.style.background = ''; btn.style.animation = ''; }
-      }, 3000);
+      if (!window.confirm('确定删除该采购单？删除后库存将相应调整。')) return;
+      const p = appData.purchases.find(x => x.id === id);
+      if (p) {
+        // 恢复库存
+        (p.items || []).forEach(item => {
+          if (appData.inventory[item.productId] !== undefined) {
+            appData.inventory[item.productId] -= (item.quantity - (item.returned || 0));
+          }
+        });
+      }
+      appData.purchases = appData.purchases.filter(x => x.id !== id);
+      saveData();
+      addLog('delete', '删除采购单', id);
+      closeModal();
+      renderPage();
+      showToast('已删除');
     }
 
     function deleteSale(id) {
-      appConfirm('确定删除该销售单？库存将恢复，关联收款记录也将删除。', () => {
+      confirm('确定删除该销售单？库存将恢复，关联收款记录也将删除。', () => {
         const s = appData.sales.find(x => x.id === id);
         if (s) {
           // 恢复库存（只恢复未退货部分，已退货部分在退货时已加回库存）
@@ -858,7 +847,7 @@
     }
 
     function deletePayment(id) {
-      appConfirm('确定删除该收款记录？', () => {
+      confirm('确定删除该收款记录？', () => {
         appData.payments = appData.payments.filter(x => x.id !== id);
         saveData();
         addLog('delete', '删除收款记录', id);
@@ -1076,7 +1065,7 @@
 
     function deleteCustomer() {
       const c = editingCustomer;
-      appConfirm('确定删除客户 ' + c.name + '？', () => {
+      confirm('确定删除客户 ' + c.name + '？', () => {
         appData.customers = appData.customers.filter(x => x.id !== c.id);
         saveData();
         addLog('delete', '删除客户', c.name);
@@ -1162,7 +1151,7 @@
 
     function deleteSupplier() {
       const s = editingSupplier;
-      appConfirm('确定删除供应商 ' + s.name + '？', () => {
+      confirm('确定删除供应商 ' + s.name + '？', () => {
         appData.suppliers = appData.suppliers.filter(x => x.id !== s.id);
         saveData();
         addLog('delete', '删除供应商', s.name);
@@ -1260,7 +1249,7 @@
           <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span></div>
           ${p.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${p.remark}</span></div>` : ''}
         </div>`,
-        `<button class="btn btn-danger" onclick="confirmDeletePurchase(''+p.id+'',this)">删除</button>
+        `<button class="btn btn-danger" onclick="deletePurchase(\''+p.id+'\')">删除</button>
          <button class="btn btn-outline" onclick="closeModal()">关闭</button>
          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
          ${p.status!=='returned'?'<button class="btn btn-warning" onclick="returnPurchase(\''+p.id+'\')">退货</button>':''}`,
@@ -2649,7 +2638,7 @@
     }
 
     function clearAllData() {
-      appConfirm('确定要清空所有数据吗？此操作不可恢复！', () => {
+      confirm('确定要清空所有数据吗？此操作不可恢复！', () => {
         appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
         saveData();
         showToast('数据已清空');
@@ -2777,7 +2766,7 @@
     }
 
     function deleteExpense(id) {
-      appConfirm('确定删除该支出记录？', () => {
+      confirm('确定删除该支出记录？', () => {
         appData.expenses = appData.expenses.filter(x => x.id !== id);
         saveData();
         addLog('delete', '删除支出', id);
@@ -2813,13 +2802,12 @@
       window.print();
     }
 
-    // Unregister any existing Service Workers to clear old cache
+    // ============ Cleanup old Service Workers & caches ============
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        registrations.forEach(function(reg) { reg.unregister(); });
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(reg) { reg.unregister(); });
       });
     }
-    // Clear all caches
     if ('caches' in window) {
       caches.keys().then(function(names) { names.forEach(function(n) { caches.delete(n); }); });
     }

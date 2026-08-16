@@ -1249,7 +1249,7 @@
           <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span></div>
           ${p.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${p.remark}</span></div>` : ''}
         </div>`,
-        `<button class="btn btn-danger" onclick="deletePurchase(\''+p.id+'\')">删除</button>
+        `<button class="btn btn-danger" onclick="deletePurchase('${p.id}')">删除</button>
          <button class="btn btn-outline" onclick="closeModal()">关闭</button>
          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
          ${p.status!=='returned'?'<button class="btn btn-warning" onclick="returnPurchase(\''+p.id+'\')">退货</button>':''}`,

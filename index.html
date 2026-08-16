@@ -807,22 +807,23 @@
     }
 
     function deletePurchase(id) {
-      if (!window.confirm('确定删除该采购单？删除后库存将相应调整。')) return;
-      const p = appData.purchases.find(x => x.id === id);
-      if (p) {
-        // 恢复库存
-        (p.items || []).forEach(item => {
-          if (appData.inventory[item.productId] !== undefined) {
-            appData.inventory[item.productId] -= (item.quantity - (item.returned || 0));
-          }
-        });
-      }
-      appData.purchases = appData.purchases.filter(x => x.id !== id);
-      saveData();
-      addLog('delete', '删除采购单', id);
-      closeModal();
-      renderPage();
-      showToast('已删除');
+      confirm('确定删除该采购单？删除后库存将相应调整。', () => {
+        const p = appData.purchases.find(x => x.id === id);
+        if (p) {
+          // 恢复库存
+          (p.items || []).forEach(item => {
+            if (appData.inventory[item.productId] !== undefined) {
+              appData.inventory[item.productId] -= (item.quantity - (item.returned || 0));
+            }
+          });
+        }
+        appData.purchases = appData.purchases.filter(x => x.id !== id);
+        saveData();
+        addLog('delete', '删除采购单', id);
+        closeModal();
+        renderPage();
+        showToast('已删除');
+      });
     }
 
     function deleteSale(id) {

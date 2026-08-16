@@ -31,6 +31,7 @@
     .main-content { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 70px; -webkit-overflow-scrolling: touch; }
     .page { display: none; }
     .page.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100; }
     .tab-item { flex: 1; padding: 8px 4px; text-align: center; cursor: pointer; border: none; background: none; color: var(--gray); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -804,7 +805,6 @@
     }
 
     function deletePurchase(id) {
-      appConfirm('确定删除该采购单？删除后库存将相应调整。', () => {
         const p = appData.purchases.find(x => x.id === id);
         if (p) {
           // 恢复库存
@@ -820,7 +820,17 @@
         closeModal();
         renderPage();
         showToast('已删除');
-      });
+    }
+    
+    function confirmDeletePurchase(id, btn) {
+      const originalText = btn.textContent;
+      btn.textContent = '确认删除？';
+      btn.style.background = '#c0392b';
+      btn.style.animation = 'pulse 0.5s ease infinite';
+      btn.setAttribute('onclick', "deletePurchase('" + id + "')");
+      setTimeout(() => {
+        if (btn) { btn.textContent = originalText; btn.style.background = ''; btn.style.animation = ''; }
+      }, 3000);
     }
 
     function deleteSale(id) {
@@ -1247,7 +1257,7 @@
           <div class="detail-row"><span class="detail-label">合计</span><span class="detail-value" style="font-size:18px;color:var(--primary)">${formatMoney(calcPurchaseTotal(p))}</span></div>
           ${p.remark ? `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${p.remark}</span></div>` : ''}
         </div>`,
-        `<button class="btn btn-danger" onclick="deletePurchase(\''+p.id+'\')">删除</button>
+        `<button class="btn btn-danger" onclick="confirmDeletePurchase(''+p.id+'',this)">删除</button>
          <button class="btn btn-outline" onclick="closeModal()">关闭</button>
          <button class="btn btn-outline" onclick="printContent()">🖨️ 打印</button>
          ${p.status!=='returned'?'<button class="btn btn-warning" onclick="returnPurchase(\''+p.id+'\')">退货</button>':''}`,

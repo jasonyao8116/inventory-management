@@ -465,7 +465,7 @@
     }
 
     let _confirmCallback = null;
-    function confirm(msg, callback) {
+    function appConfirm(msg, callback) {
       _confirmCallback = callback;
       openModal('确认', `<p style="text-align:center;padding:20px;">${msg}</p>`,
         `<button class="btn btn-outline" onclick="closeModal()">取消</button>
@@ -792,7 +792,7 @@
     }
 
     function deleteProduct(id) {
-      confirm('确定删除该商品？', () => {
+      appConfirm('确定删除该商品？', () => {
         const p = appData.products.find(x => x.id === id);
         appData.products = appData.products.filter(x => x.id !== id);
         appData.favorites = appData.favorites.filter(x => x !== id);
@@ -804,7 +804,7 @@
     }
 
     function deletePurchase(id) {
-      confirm('确定删除该采购单？删除后库存将相应调整。', () => {
+      appConfirm('确定删除该采购单？删除后库存将相应调整。', () => {
         const p = appData.purchases.find(x => x.id === id);
         if (p) {
           // 恢复库存
@@ -824,7 +824,7 @@
     }
 
     function deleteSale(id) {
-      confirm('确定删除该销售单？库存将恢复，关联收款记录也将删除。', () => {
+      appConfirm('确定删除该销售单？库存将恢复，关联收款记录也将删除。', () => {
         const s = appData.sales.find(x => x.id === id);
         if (s) {
           // 恢复库存（只恢复未退货部分，已退货部分在退货时已加回库存）
@@ -845,7 +845,7 @@
     }
 
     function deletePayment(id) {
-      confirm('确定删除该收款记录？', () => {
+      appConfirm('确定删除该收款记录？', () => {
         appData.payments = appData.payments.filter(x => x.id !== id);
         saveData();
         addLog('delete', '删除收款记录', id);
@@ -1063,7 +1063,7 @@
 
     function deleteCustomer() {
       const c = editingCustomer;
-      confirm('确定删除客户 ' + c.name + '？', () => {
+      appConfirm('确定删除客户 ' + c.name + '？', () => {
         appData.customers = appData.customers.filter(x => x.id !== c.id);
         saveData();
         addLog('delete', '删除客户', c.name);
@@ -1149,7 +1149,7 @@
 
     function deleteSupplier() {
       const s = editingSupplier;
-      confirm('确定删除供应商 ' + s.name + '？', () => {
+      appConfirm('确定删除供应商 ' + s.name + '？', () => {
         appData.suppliers = appData.suppliers.filter(x => x.id !== s.id);
         saveData();
         addLog('delete', '删除供应商', s.name);
@@ -2636,7 +2636,7 @@
     }
 
     function clearAllData() {
-      confirm('确定要清空所有数据吗？此操作不可恢复！', () => {
+      appConfirm('确定要清空所有数据吗？此操作不可恢复！', () => {
         appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
         saveData();
         showToast('数据已清空');
@@ -2764,7 +2764,7 @@
     }
 
     function deleteExpense(id) {
-      confirm('确定删除该支出记录？', () => {
+      appConfirm('确定删除该支出记录？', () => {
         appData.expenses = appData.expenses.filter(x => x.id !== id);
         saveData();
         addLog('delete', '删除支出', id);

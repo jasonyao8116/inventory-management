@@ -2803,11 +2803,11 @@
     // ============ Service Worker ============
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'jxc-v1';
+        const CACHE_NAME = 'jxc-v2';
         self.addEventListener('install', e => self.skipWaiting());
         self.addEventListener('activate', e => e.waitUntil(clients.claim()));
         self.addEventListener('fetch', e => {
-          e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+          e.respondWith(caches.delete(e.request).then(() => fetch(e.request)).catch(() => caches.match(e.request)));
         });
       `;
       const blob = new Blob([swCode], {type: 'application/javascript'});

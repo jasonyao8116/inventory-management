@@ -2813,7 +2813,16 @@
       window.print();
     }
 
-    // Service Worker removed to fix caching issues
+    // Unregister any existing Service Workers to clear old cache
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        registrations.forEach(function(reg) { reg.unregister(); });
+      });
+    }
+    // Clear all caches
+    if ('caches' in window) {
+      caches.keys().then(function(names) { names.forEach(function(n) { caches.delete(n); }); });
+    }
 
     // ============ 初始化 ============
     renderTabBar();
